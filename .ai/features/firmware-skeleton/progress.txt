@@ -1,0 +1,5 @@
+# Task Progress - firmware-skeleton
+
+01-build-and-flash: DONE
+02-serial-log-and-tests: TODO
+03-key-and-button-events: TODO
