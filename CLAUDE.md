@@ -11,10 +11,23 @@ All commands run from the repository root. The first build needs network access:
 | Build | `pio run -e cardputer` |
 | Flash | `pio run -e cardputer -t upload` |
 | Serial monitor | `pio device monitor -e cardputer` |
+| Host tests | `pio test -e native` |
 | Flash, then monitor | `pio run -e cardputer -t upload -t monitor` |
 | Clean | `pio run -e cardputer -t clean` |
 
-PlatformIO CLI is installed with Homebrew (`brew install platformio`).
+PlatformIO CLI is installed with Homebrew (`brew install platformio`). Host tests need a working Apple C++ compiler (Command Line Tools, `xcode-select --install`).
+
+## Host tests
+
+`pio test -e native` compiles only `src/core/` together with the tests in `test/`, using the Mac's compiler. Code under `src/core/` must not include Arduino, ESP-IDF or M5Stack headers: anything hardware-specific stays outside it.
+
+## Serial log
+
+Every line is `[L][TAG] message`, with L one of D, I, W, E and TAG a module name of at most 6 characters (`SYS`, `KEY`, `BTN`, later `BLE`, `ANCS`, `HID`). Log through `logMessage()` in `src/log.h`, never with `Serial.print` directly. Messages longer than 256 characters are truncated with `...`.
+
+The minimum level is set at build time with `-DTASCA_LOG_MIN_LEVEL=` (0 Debug, the default, 1 Info, 2 Warn, 3 Error), e.g. `PLATFORMIO_BUILD_FLAGS="-DTASCA_LOG_MIN_LEVEL=1" pio run -e cardputer`.
+
+At startup the firmware waits up to 1.5 s for a serial monitor, then logs one boot report: `[I][SYS] boot version=… psram=… heap=… flash=…` (`psram=none` on the Cardputer v1.1). A monitor opened later misses it: reset the board with the monitor open to see it again.
 
 ## Serial port
 
