@@ -1,0 +1,33 @@
+# Builds the firmware and runs the host tests on every push and pull request.
+name: CI
+
+on:
+  push:
+  pull_request:
+
+jobs:
+  build-and-test:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      # The pinned platform, toolchain and libraries are downloaded once per platformio.ini.
+      - uses: actions/cache@v4
+        with:
+          path: |
+            ~/.platformio
+            .pio/libdeps
+          key: pio-${{ runner.os }}-${{ hashFiles('platformio.ini') }}
+
+      - name: Install PlatformIO
+        run: pip install platformio==6.2.0
+
+      - name: Host tests
+        run: pio test -e native
+
+      - name: Build firmware
+        run: pio run -e cardputer
