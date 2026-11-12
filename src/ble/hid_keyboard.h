@@ -21,5 +21,7 @@ bool sendKeyboardReport(const KeyboardReport& report);
 // loop() only. Sends a consumer control usage (e.g. Eject) and its release. False when either
 // report could not be queued for sending.
 bool sendConsumerUsage(uint16_t usage);
+// Sends a consumer control report holding usage down until the next call; 0 releases it.
+bool setConsumerUsage(uint16_t usage);
 
 }  // namespace ble

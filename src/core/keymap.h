@@ -25,7 +25,7 @@ constexpr uint8_t kDeadAcute = 0x08;
 // Turns the Cardputer keys currently down into HID keyboard reports, by key position (US
 // usages): the host's keyboard layout decides the characters. Accented letters (Fn+vowel,
 // Ctrl+e) become Option dead-key sequences, as typed on a U.S. layout. Fn+Space asks for the
-// consumer Eject usage, which toggles the iPhone's on-screen keyboard.
+// consumer Eject usage, which toggles the iPhone's on-screen keyboard; Fn+Enter asks for Siri.
 class KeyboardMapper {
 public:
     // Starts from an empty report; keys down now are ignored until released.
@@ -39,14 +39,17 @@ public:
 
     // True once per Fn+Space press since the last call.
     bool takeEject();
+    // True once per Fn+Enter press since the last call.
+    bool takeSiri();
 
-    // Keys sent since construction (letters, accented letters, Eject), modifiers excluded.
+    // Keys sent since construction (letters, accented letters, Eject, Siri), modifiers excluded.
     uint32_t keyPresses() const { return keyPresses_; }
 
 private:
     KeyboardReport report_{};
     std::vector<KeyPos> masked_;
-    std::vector<KeyPos> oncePerPress_;  // accent and Eject keys already acted on, until released
+    std::vector<KeyPos> oncePerPress_;  // accent, Eject and Siri keys already acted on, until released
     bool ejectPending_ = false;
+    bool siriPending_ = false;
     uint32_t keyPresses_ = 0;
 };

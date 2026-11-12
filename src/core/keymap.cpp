@@ -83,6 +83,7 @@ uint8_t usageOf(KeyPos key, bool fn) {
 
 constexpr KeyPos kCtrlKey{3, 0};
 constexpr KeyPos kSpaceKey{3, 13};
+constexpr KeyPos kEnterKey{2, 13};
 
 // The accent typed by `key` with the keys down, or nullptr. Fn+Ctrl+e matches neither entry.
 const AccentKey* accentOf(KeyPos key, bool fn, bool ctrl) {
@@ -104,6 +105,12 @@ void KeyboardMapper::reset(const std::vector<KeyPos>& pressed) {
 bool KeyboardMapper::takeEject() {
     const bool pending = ejectPending_;
     ejectPending_ = false;
+    return pending;
+}
+
+bool KeyboardMapper::takeSiri() {
+    const bool pending = siriPending_;
+    siriPending_ = false;
     return pending;
 }
 
@@ -131,6 +138,12 @@ std::vector<KeyboardReport> KeyboardMapper::update(const std::vector<KeyPos>& pr
         }
         if (fn && samePos(key, kSpaceKey)) {
             ejectPending_ = true;
+            oncePerPress_.push_back(key);
+            keyPresses_++;
+            continue;
+        }
+        if (fn && samePos(key, kEnterKey)) {
+            siriPending_ = true;
             oncePerPress_.push_back(key);
             keyPresses_++;
             continue;

@@ -65,6 +65,11 @@ bool sendKeyboardReport(const KeyboardReport& report) {
     return keyboardInput->notify(report.data(), report.size());
 }
 
+bool setConsumerUsage(uint16_t usage) {
+    const uint8_t report[] = {static_cast<uint8_t>(usage & 0xFF), static_cast<uint8_t>(usage >> 8)};
+    return consumerInput->notify(report, sizeof(report));
+}
+
 bool sendConsumerUsage(uint16_t usage) {
     const uint8_t press[] = {static_cast<uint8_t>(usage & 0xFF), static_cast<uint8_t>(usage >> 8)};
     const uint8_t release[] = {0, 0};

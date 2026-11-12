@@ -31,6 +31,8 @@ constexpr int kKeyAreaTop = 106;
 constexpr uint32_t kResetNoticeMs = 1500;
 // Consumer control usage that toggles the iPhone's on-screen keyboard.
 constexpr uint16_t kEjectUsage = 0xB8;
+// Consumer control usage that asks the iPhone to start Siri (Voice Command).
+constexpr uint16_t kSiriUsage = 0xCF;
 // The iPhone tells a keyboard nothing about app or field changes: a pause starts a new echo line.
 constexpr uint32_t kEchoIdleMs = 10000;
 constexpr uint32_t kBatteryPollMs = 30000;
@@ -542,10 +544,37 @@ void setKeyboardMode(bool on, const std::vector<KeyPos>& pressed) {
     screenDirty = true;
 }
 
+// Siri starts on a held command, as on a headset button: it stays down until Enter is released.
+bool siriHeld = false;
+
+void requestSiri() {
+    if (!keyboardReady) {
+        logMessage(LogLevel::Warn, "HID", "siri not requested: iPhone not ready");
+        return;
+    }
+    if (!ble::setConsumerUsage(kSiriUsage)) {
+        logMessage(LogLevel::Warn, "HID", "siri request not sent");
+        return;
+    }
+    siriHeld = true;
+    logMessage(LogLevel::Info, "HID", "siri requested");
+}
+
+void releaseSiri(const KeyEvent& event) {
+    if (!siriHeld || event.kind != KeyEventKind::Up || !isKey(event.key, kOpenKey)) {
+        return;
+    }
+    siriHeld = false;
+    if (!ble::setConsumerUsage(0)) {
+        logMessage(LogLevel::Warn, "HID", "siri release not sent");
+    }
+}
+
 void pollKeyboardMode(const std::vector<KeyPos>& pressed) {
     // Typed text never reaches the serial log: no KEY lines in this mode. A key that turns the screen on
     // still reaches the iPhone.
     for (const KeyEvent& event : keyTracker.update(pressed)) {
+        releaseSiri(event);
         if (event.kind == KeyEventKind::Down) {
             wakeScreen();
         }
@@ -572,6 +601,9 @@ void pollKeyboardMode(const std::vector<KeyPos>& pressed) {
     }
     if (keyboard.takeEject() && !ble::sendConsumerUsage(kEjectUsage)) {
         logMessage(LogLevel::Warn, "HID", "eject not sent");
+    }
+    if (keyboard.takeSiri()) {
+        requestSiri();
     }
 }
 
@@ -653,11 +685,18 @@ void pollReadingMode(const std::vector<KeyPos>& pressed) {
         char text[kKeyTextCapacity];
         formatKeyEvent(text, sizeof(text), event);
         logMessage(LogLevel::Debug, "KEY", "%s", text);
+        releaseSiri(event);
         // A key that turns the screen on does nothing else.
         if (event.kind != KeyEventKind::Down || wakeScreen()) {
             continue;
         }
-        // Fn is ignored: Fn+; and Fn+. are the arrow legends of the same keys, Fn+, and Fn+/ likewise.
+        // Fn+Enter starts Siri; the screen stays as it is, since the request is spoken.
+        if (isKey(event.key, kOpenKey) && (event.modifiers & kModFn) != 0) {
+            screenDirty |= settingsNav.cancel();
+            requestSiri();
+            continue;
+        }
+        // Fn is otherwise ignored: Fn+; and Fn+. are the arrow legends of the same keys, Fn+, and Fn+/ likewise.
         if (settingsOpen) {
             pollSettingsKey(event.key);
         } else if (isKey(event.key, kSettingsKey) && (event.modifiers & kModOpt) != 0) {

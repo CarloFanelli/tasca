@@ -247,6 +247,27 @@ static void test_space_without_fn_is_no_eject() {
     assertReport(0, {0x2C}, mapper.report());
 }
 
+static void test_fn_enter_requests_siri_once_per_press_and_types_nothing() {
+    KeyboardMapper mapper;
+    TEST_ASSERT_TRUE(mapper.update({kFn, kEnter}).empty());
+    TEST_ASSERT_TRUE(mapper.takeSiri());
+    TEST_ASSERT_FALSE(mapper.takeSiri());
+    mapper.update({kFn, kEnter});
+    TEST_ASSERT_FALSE(mapper.takeSiri());
+    mapper.update({kFn});
+    mapper.update({kFn, kEnter});
+    TEST_ASSERT_TRUE(mapper.takeSiri());
+    TEST_ASSERT_FALSE(mapper.takeEject());
+    assertReport(0, {}, mapper.report());
+}
+
+static void test_enter_without_fn_is_no_siri() {
+    KeyboardMapper mapper;
+    mapper.update({kEnter});
+    TEST_ASSERT_FALSE(mapper.takeSiri());
+    assertReport(0, {0x28}, mapper.report());
+}
+
 int main() {
     UNITY_BEGIN();
     RUN_TEST(test_letters_and_enter_are_sent_by_position);
@@ -270,5 +291,7 @@ int main() {
     RUN_TEST(test_accents_are_counted_as_key_presses);
     RUN_TEST(test_fn_space_requests_eject_once_per_press);
     RUN_TEST(test_space_without_fn_is_no_eject);
+    RUN_TEST(test_fn_enter_requests_siri_once_per_press_and_types_nothing);
+    RUN_TEST(test_enter_without_fn_is_no_siri);
     return UNITY_END();
 }
