@@ -67,6 +67,10 @@ The platform and every library, transitive ones included, are pinned to exact ve
 - GATT writes (ANCS Control Point, HID reports) are issued only from the main loop.
 - Redraw only on state change (dirty flag), never on every loop iteration.
 
+## Upcoming features
+
+`.ai/features/UPCOMING.md` lists the features with an approved spec that are not the current one. When `.ai/.current-feature` moves to another feature, add the one left behind there, unless it is completed; when a listed feature becomes current again, remove its entry. Follow the rules at the top of that file.
+
 ## References
 
 - [Apple ANCS specification](https://developer.apple.com/library/content/documentation/CoreBluetooth/Reference/AppleNotificationCenterServiceSpecification/Specification/Specification.html): write the ANCS parser against the spec, not from memory.
