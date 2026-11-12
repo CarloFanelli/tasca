@@ -1,6 +1,6 @@
 ---
 feature: settings-power
-spec-version: 1.0
+spec-version: 1.1
 status: approved
 ---
 
@@ -118,10 +118,7 @@ Storage goes through the Arduino `Preferences` library (NVS), which is part of t
 
 ---
 
-### Task 06: autonomy-readme
+### Task 06: readme
 
 **Files to create:**
-- `README.md`: purpose, iPhone setup (from `CLAUDE.md` § BLE and pairing and the project spec §6), measured autonomy (start charge, settings, hours to shutdown), privacy notice.
-
-**Key decisions:**
-- Measure with a serial capture logging battery and uptime every few minutes, using the existing battery poll (`src/main.cpp` `pollBattery`). Log at `I` with tag `SYS` once a minute. Keep the log line: it costs nothing and records the curve.
+- `README.md`: purpose, iPhone setup (from `CLAUDE.md` § BLE and pairing and the project spec §6), the Cardputer's keys (Reading mode, Settings, Keyboard mode), privacy notice.

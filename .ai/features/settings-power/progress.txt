@@ -5,4 +5,4 @@
 03-beep-and-sleep: DONE
 04-screen-off-timings: DONE
 05-whatsapp-category-filter: DONE
-06-autonomy-readme: TODO
+06-readme: DONE

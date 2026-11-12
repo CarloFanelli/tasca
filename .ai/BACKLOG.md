@@ -22,3 +22,7 @@
 ### B-5 · open
 - **What**: Spike on replying through Siri without taking the iPhone out: send the consumer Voice Command usage from the Cardputer and dictate "send a WhatsApp to …" through earphones. To verify: whether Siri answers with the iPhone locked, and whether WhatsApp accepts the dictated message.
 - **From**: settings-power (interview, 2026-11-12)
+
+### B-6 · open
+- **What**: Measure the connected-standby autonomy with the screen off and the slow link timings (from full charge to shutdown, battery and uptime logged once a minute) and state it in the README, against the 12 h target of the project spec.
+- **From**: settings-power (review, 2026-11-12)

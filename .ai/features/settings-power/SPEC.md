@@ -1,6 +1,6 @@
 ---
 feature: settings-power
-version: 1.0
+version: 1.1
 status: approved
 completed: false
 base: 891ab744da34a768179d6a417aeaf23186330185
@@ -14,7 +14,7 @@ Adds a **Settings** screen and makes the Cardputer last on battery. From Reading
 - brightness, sound, display timeout and wake on new Message, all kept across restarts;
 - two actions: reset pairing and clear Messages.
 
-A Message arriving live beeps, if sound is on, and wakes the screen, if that setting is on. The screen turns off after the display timeout. While it is off, the Bluetooth link uses slower, power-saving timings. Attributes are requested only for the notification category WhatsApp uses, so reconnection is faster and lighter. A README records the measured standby autonomy and how to set up the iPhone.
+A Message arriving live beeps, if sound is on, and wakes the screen, if that setting is on. The screen turns off after the display timeout. While it is off, the Bluetooth link uses slower, power-saving timings. Attributes are requested only for the notification category WhatsApp uses, so reconnection is faster and lighter. A README explains how to set up the iPhone.
 
 ## Project Context
 
@@ -23,7 +23,6 @@ A Message arriving live beeps, if sound is on, and wakes the screen, if that set
 - Fn+Del (3 s) pairing reset exists and stays; the Settings action does the same thing.
 - Settings and bonding keys persist in the ESP32's non-volatile storage; Messages stay in RAM only.
 - iOS accepts only certain connection timings from accessories; slower timings must stay within them.
-- Autonomy target from the project spec: 12 h connected standby — measured and reported, not guaranteed.
 - Notification categories come with every notification event; WhatsApp's category must be observed on hardware.
 
 ## Functional Requirements
@@ -52,7 +51,7 @@ A Message arriving live beeps, if sound is on, and wakes the screen, if that set
 
 - REQ-12: With the screen off the link requests slower timings accepted by iOS; with the screen on it requests the usual ones.
 - REQ-13: Attributes are requested only for notifications in WhatsApp's category; others are counted and skipped.
-- REQ-14: The README states the measured connected-standby autonomy with the screen-off timings, and the iPhone setup steps.
+- REQ-14: The README states the iPhone setup steps and that Messages on the Cardputer are unprotected.
 
 ## Data & Dependencies
 
@@ -101,13 +100,14 @@ A Message arriving live beeps, if sound is on, and wakes the screen, if that set
 | Notification event without a category WhatsApp uses | Counted; no attribute request | REQ-13 |
 | WhatsApp notification in an unexpected category | Not stored — check the category on hardware before enabling the filter | REQ-13 |
 | Removed event for a skipped notification | Ignored | REQ-13 |
-| Battery level unknown during the measurement | Measurement by elapsed time until shutdown | REQ-14 |
+| README read before pairing | Setup steps in the order they are done: pair, share notifications, keyboard layout | REQ-14 |
 | Display failed to initialize | Settings still applied from storage; beep and timings work | REQ-3, REQ-9 |
 | N/A — concurrent: one user, one main loop | — | REQ-2, REQ-6 |
 | N/A — permission: no access control on the device (stated in README) | — | REQ-1, REQ-14 |
 
 ## Out of Scope
 
+- **Measured standby autonomy in the README** — postponed by the user; tracked as backlog B-6.
 - **Log on microSD and reload at start** — milestone M6.
 - **Screen lock or PIN** — not in v1; the README states the device is unprotected.
 - **Volume or beep tone settings** — one short beep is enough; on/off covers the need.
