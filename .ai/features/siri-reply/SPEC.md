@@ -3,7 +3,7 @@ feature: siri-reply
 version: 1.2
 status: approved
 completed: false
-base: e7d3cfba187ed44dd7d2e7dc526c2875408fd574
+base: 74b36171364e7911f37e7af1f4a826ec2532dca0
 ---
 
 # Siri Reply (spike)

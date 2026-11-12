@@ -3,7 +3,7 @@ feature: settings-power
 version: 1.1
 status: approved
 completed: true
-base: 891ab744da34a768179d6a417aeaf23186330185
+base: 9960d7185c2c16a7295a8511b95c1ef396eb8cc9
 ---
 
 # Settings and Power (M5)

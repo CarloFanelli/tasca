@@ -2,12 +2,12 @@
 feature: hid-keyboard
 status: APPROVED
 reviewed: 2026-11-12
-head: 0e50a998eea5e6a7ed00aa26dea5b6c572db2216
+head: c3a711fe9d8583d6ff4ce6da87b44c7f5ea4ed79
 ---
 
 # Review — hid-keyboard
 
-**Scope**: re-verification of the 3 addressed findings over the same 9 files (diff since base `0e50a998`, narrowed to this feature's files; nothing is committed since base, so the diff also carries the already-reviewed firmware-skeleton and ancs-capture work, left out; 24 workflow artifacts under `.ai/` excluded): `CLAUDE.md`, `src/ble/hid_keyboard.{h,cpp}`, `src/core/keymap.{h,cpp}`, `src/core/echo_line.{h,cpp}`, `src/main.cpp`, `test/test_keymap/test_main.cpp`, `test/test_echo_line/test_main.cpp`
+**Scope**: re-verification of the 3 addressed findings over the same 9 files (diff since base `c3a711fe`, narrowed to this feature's files; nothing is committed since base, so the diff also carries the already-reviewed firmware-skeleton and ancs-capture work, left out; 24 workflow artifacts under `.ai/` excluded): `CLAUDE.md`, `src/ble/hid_keyboard.{h,cpp}`, `src/core/keymap.{h,cpp}`, `src/core/echo_line.{h,cpp}`, `src/main.cpp`, `test/test_keymap/test_main.cpp`, `test/test_echo_line/test_main.cpp`
 **Findings**: 0 must-fix · 0 should-fix · 0 nit
 
 ## Findings

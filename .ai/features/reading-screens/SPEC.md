@@ -3,7 +3,7 @@ feature: reading-screens
 version: 1.2
 status: approved
 completed: true
-base: d99f677ec0743e4ca679933a42254c2245a28b44
+base: 47a84f80975d47f3ba0cd26de0865e042a3c5a44
 ---
 
 # Reading Screens (M4)

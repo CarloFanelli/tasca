@@ -2,7 +2,7 @@
 feature: firmware-skeleton
 status: APPROVED
 reviewed: 2026-11-12
-head: 0e50a998eea5e6a7ed00aa26dea5b6c572db2216
+head: c3a711fe9d8583d6ff4ce6da87b44c7f5ea4ed79
 ---
 
 # Review — firmware-skeleton

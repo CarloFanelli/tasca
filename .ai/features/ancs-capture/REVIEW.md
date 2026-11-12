@@ -2,12 +2,12 @@
 feature: ancs-capture
 status: APPROVED
 reviewed: 2026-11-12
-head: 0e50a998eea5e6a7ed00aa26dea5b6c572db2216
+head: c3a711fe9d8583d6ff4ce6da87b44c7f5ea4ed79
 ---
 
 # Review — ancs-capture
 
-**Scope**: 23 files (delta since review head `0e50a998`, working tree included — no commit since, so the same files as the first pass; 16 workflow artifacts under `.ai/` excluded)
+**Scope**: 23 files (delta since review head `c3a711fe`, working tree included — no commit since, so the same files as the first pass; 16 workflow artifacts under `.ai/` excluded)
 **Findings**: 0 must-fix · 0 should-fix · 0 nit
 
 ## Findings

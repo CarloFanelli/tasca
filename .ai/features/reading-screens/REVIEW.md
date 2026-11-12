@@ -2,12 +2,12 @@
 feature: reading-screens
 status: APPROVED
 reviewed: 2026-11-12
-head: d99f677ec0743e4ca679933a42254c2245a28b44
+head: 47a84f80975d47f3ba0cd26de0865e042a3c5a44
 ---
 
 # Review — reading-screens
 
-**Scope**: 28 files (delta since review head `d99f677e`, nothing committed since, so the whole feature diff; 12 workflow artifacts under `.ai/` excluded)
+**Scope**: 28 files (delta since review head `47a84f80`, nothing committed since, so the whole feature diff; 12 workflow artifacts under `.ai/` excluded)
 **Findings**: 0 must-fix · 0 should-fix · 0 nit
 
 ## Findings

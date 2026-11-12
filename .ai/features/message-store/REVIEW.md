@@ -2,12 +2,12 @@
 feature: message-store
 status: APPROVED
 reviewed: 2026-11-12
-head: 0e50a998eea5e6a7ed00aa26dea5b6c572db2216
+head: c3a711fe9d8583d6ff4ce6da87b44c7f5ea4ed79
 ---
 
 # Review — message-store
 
-**Scope**: re-verification of the 3 addressed findings over the same 18 files from the diff since base `0e50a998`, narrowed to this feature's files. Nothing has been committed since base, so the diff also carries the already-reviewed firmware-skeleton, ancs-capture and hid-keyboard work, which was left out. Workflow artifacts under `.ai/` were excluded. Files: `CLAUDE.md`, `src/ble/ancs_client.{h,cpp}`, `src/core/ancs_request.{h,cpp}`, `src/core/utf8.{h,cpp}`, `src/core/chat_key.{h,cpp}`, `src/core/message_store.{h,cpp}`, `src/core/echo_line.{h,cpp}`, `src/main.cpp`, and the tests `test_ancs_request`, `test_utf8`, `test_chat_key`, `test_message_store`. The scan was done in one context: the feature's changes are below the size that warrants agents.
+**Scope**: re-verification of the 3 addressed findings over the same 18 files from the diff since base `c3a711fe`, narrowed to this feature's files. Nothing has been committed since base, so the diff also carries the already-reviewed firmware-skeleton, ancs-capture and hid-keyboard work, which was left out. Workflow artifacts under `.ai/` were excluded. Files: `CLAUDE.md`, `src/ble/ancs_client.{h,cpp}`, `src/core/ancs_request.{h,cpp}`, `src/core/utf8.{h,cpp}`, `src/core/chat_key.{h,cpp}`, `src/core/message_store.{h,cpp}`, `src/core/echo_line.{h,cpp}`, `src/main.cpp`, and the tests `test_ancs_request`, `test_utf8`, `test_chat_key`, `test_message_store`. The scan was done in one context: the feature's changes are below the size that warrants agents.
 **Findings**: 0 must-fix · 0 should-fix · 0 nit
 
 ## Findings
