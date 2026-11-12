@@ -1,5 +1,7 @@
 #include "core/display_text.h"
 
+#include <stdint.h>
+
 #include "core/utf8.h"
 
 namespace {
