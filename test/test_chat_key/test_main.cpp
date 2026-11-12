@@ -50,6 +50,11 @@ static void test_group_named_question_mark_stays_a_group() {
     TEST_ASSERT_EQUAL_STRING("Luca", key.sender.c_str());
 }
 
+static void test_group_is_a_sender_other_than_the_chat() {
+    TEST_ASSERT_TRUE(isGroup("Calcetto", "Luca"));
+    TEST_ASSERT_FALSE(isGroup("Anna", "Anna"));
+}
+
 int main() {
     UNITY_BEGIN();
     RUN_TEST(test_single_chat_uses_the_title_for_chat_and_sender);
@@ -58,5 +63,6 @@ int main() {
     RUN_TEST(test_direction_mark_inside_a_name_is_kept);
     RUN_TEST(test_empty_names_become_a_question_mark);
     RUN_TEST(test_group_named_question_mark_stays_a_group);
+    RUN_TEST(test_group_is_a_sender_other_than_the_chat);
     return UNITY_END();
 }

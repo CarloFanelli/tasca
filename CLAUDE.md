@@ -33,7 +33,7 @@ At startup the firmware waits up to 1.5 s for a serial monitor, then logs one bo
 
 ## BLE and pairing
 
-The Cardputer advertises as "Tasca" (keyboard appearance, HID service, ANCS solicitation) and bonds with the iPhone using Just Works: no PIN. Phases are logged tagged `BLE` and shown on the status line under the version.
+The Cardputer advertises as "Tasca" (keyboard appearance, HID service, ANCS solicitation) and bonds with the iPhone using Just Works: no PIN. Phases are logged tagged `BLE` and shown on the status bar at the top of the screen.
 
 - The GATT table (HID, Battery, Device Information) must not change once a device has bonded: iOS caches it, and a change requires "Forget This Device" and a new pairing.
 - Only one iPhone can be bonded; a second device is refused.

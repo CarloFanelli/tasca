@@ -49,17 +49,48 @@ MessageStore::Result MessageStore::receive(uint32_t uid, bool preExisting, const
     message.linked = true;
     memoryBytes_ += bytesOf(message);
     messages_.push_back(std::move(message));
+    if (!preExisting) {
+        liveAdded_++;
+        hasLive_ = true;
+        newestLiveUid_ = uid;
+    }
     dropOverLimits();
     return Result::Added;
 }
 
-bool MessageStore::markRead(uint32_t uid) {
-    Message* m = linkedTo(uid);
-    if (m == nullptr || m->read) {
-        return false;
+bool MessageStore::remove(uint32_t uid) {
+    for (auto it = messages_.begin(); it != messages_.end(); ++it) {
+        if (it->linked && it->uid == uid) {
+            memoryBytes_ -= bytesOf(*it);
+            messages_.erase(it);
+            return true;
+        }
     }
-    m->read = true;
-    return true;
+    return false;
+}
+
+size_t MessageStore::removeUnlinked() {
+    const size_t before = messages_.size();
+    for (auto it = messages_.begin(); it != messages_.end();) {
+        if (it->linked) {
+            ++it;
+        } else {
+            memoryBytes_ -= bytesOf(*it);
+            it = messages_.erase(it);
+        }
+    }
+    return before - messages_.size();
+}
+
+size_t MessageStore::markChatRead(const std::string& chat) {
+    size_t changed = 0;
+    for (Message& m : messages_) {
+        if (m.chat == chat && !m.read) {
+            m.read = true;
+            changed++;
+        }
+    }
+    return changed;
 }
 
 void MessageStore::unlinkAll() {
@@ -73,6 +104,18 @@ void MessageStore::dropOverLimits() {
         memoryBytes_ -= bytesOf(messages_.front());
         messages_.pop_front();
     }
+}
+
+const Message* MessageStore::newestLive() const {
+    if (!hasLive_) {
+        return nullptr;
+    }
+    for (const Message& m : messages_) {
+        if (m.linked && m.uid == newestLiveUid_) {
+            return &m;
+        }
+    }
+    return nullptr;
 }
 
 size_t MessageStore::unread() const {

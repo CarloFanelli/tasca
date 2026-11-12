@@ -32,6 +32,10 @@ std::string orPlaceholder(const std::string& name) {
 
 }  // namespace
 
+bool isGroup(const std::string& chat, const std::string& sender) {
+    return sender != chat;
+}
+
 ChatKey chatKeyOf(const std::string& title, const std::string& subtitle) {
     const std::string sender = orPlaceholder(trimmed(title));
     const std::string group = trimmed(subtitle);

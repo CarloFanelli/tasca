@@ -87,15 +87,6 @@ bool containsKey(const std::vector<KeyPos>& keys, KeyPos key) {
     return false;
 }
 
-void formatKeyLabel(char* out, size_t outSize, KeyPos key, uint8_t modifiers) {
-    if (outSize == 0) {
-        return;
-    }
-    out[0] = '\0';
-    size_t offset = appendModifiers(out, outSize, 0, modifiers);
-    snprintf(out + offset, outSize - offset, "%s%s", modifiers ? "+" : "", keyName(key));
-}
-
 void formatKeyEvent(char* out, size_t outSize, const KeyEvent& event) {
     if (outSize == 0) {
         return;
@@ -125,10 +116,7 @@ std::vector<KeyEvent> KeyTracker::update(const std::vector<KeyPos>& pressed) {
     }
     for (const KeyPos& key : pressed) {
         if (!containsKey(pressed_, key)) {
-            KeyEvent event{KeyEventKind::Down, key, static_cast<uint8_t>(held & ~modifierBit(key))};
-            events.push_back(event);
-            lastPressed_ = event;
-            hasLastPressed_ = true;
+            events.push_back({KeyEventKind::Down, key, static_cast<uint8_t>(held & ~modifierBit(key))});
         }
     }
     pressed_ = pressed;

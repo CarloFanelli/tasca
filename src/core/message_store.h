@@ -39,8 +39,14 @@ public:
     Result receive(uint32_t uid, bool preExisting, const ChatKey& key, const std::string& text,
                    const std::string& date);
 
-    // Marks the Message linked to uid read; false when there is none or it was already read.
-    bool markRead(uint32_t uid);
+    // Removes the Message linked to uid; false when there is none.
+    bool remove(uint32_t uid);
+
+    // Removes every Message not linked in this connection; returns how many.
+    size_t removeUnlinked();
+
+    // Marks every Message of chat read; returns how many were unread.
+    size_t markChatRead(const std::string& chat);
 
     // Forgets every UID: called when the connection ends.
     void unlinkAll();
@@ -49,6 +55,10 @@ public:
     size_t size() const { return messages_.size(); }
     size_t unread() const;
     size_t memoryBytes() const { return memoryBytes_; }
+    // How many Messages were added that were not already on the iPhone at connection; never decreases.
+    size_t liveAdded() const { return liveAdded_; }
+    // The last of those Messages; nullptr once it is gone from the store.
+    const Message* newestLive() const;
 
 private:
     Message* linkedTo(uint32_t uid);
@@ -56,4 +66,7 @@ private:
 
     std::deque<Message> messages_;
     size_t memoryBytes_ = 0;
+    size_t liveAdded_ = 0;
+    bool hasLive_ = false;
+    uint32_t newestLiveUid_ = 0;
 };

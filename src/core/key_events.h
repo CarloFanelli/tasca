@@ -30,10 +30,8 @@ struct KeyEvent {
     uint8_t modifiers;
 };
 
-// "Ctrl+Shift+a", "Fn+;", "Enter": modifiers in the fixed order Ctrl, Opt, Alt, Shift, Fn.
-void formatKeyLabel(char* out, size_t outSize, KeyPos key, uint8_t modifiers);
-
-// "down ';' mods=Fn", "up Enter mods=none": printable keys quoted, the others by name.
+// "down ';' mods=Fn", "up Enter mods=none": printable keys quoted, the others by name; modifiers
+// in the fixed order Ctrl, Opt, Alt, Shift, Fn.
 void formatKeyEvent(char* out, size_t outSize, const KeyEvent& event);
 
 // Turns successive snapshots of the pressed keys into press and release events.
@@ -42,11 +40,6 @@ public:
     // Releases are reported before presses, each in snapshot order.
     std::vector<KeyEvent> update(const std::vector<KeyPos>& pressed);
 
-    bool hasLastPressed() const { return hasLastPressed_; }
-    const KeyEvent& lastPressed() const { return lastPressed_; }
-
 private:
     std::vector<KeyPos> pressed_;
-    KeyEvent lastPressed_{KeyEventKind::Down, {0, 0}, 0};
-    bool hasLastPressed_ = false;
 };

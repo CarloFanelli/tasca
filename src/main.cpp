@@ -1,21 +1,26 @@
 #include <M5Cardputer.h>
+#include <algorithm>
 #include <esp_efuse.h>
 #include <esp_efuse_table.h>
 
 #include "ble/ancs_client.h"
 #include "ble/ble_manager.h"
 #include "ble/hid_keyboard.h"
+#include "core/chat_view.h"
 #include "core/combo_hold.h"
+#include "core/display_text.h"
 #include "core/echo_line.h"
+#include "core/inbox.h"
 #include "core/key_events.h"
 #include "core/keymap.h"
+#include "core/reading_nav.h"
 #include "core/utf8.h"
 #include "log.h"
 
 namespace {
 
 constexpr uint32_t kSerialWaitMs = 1500;
-constexpr int kStatusTop = 64;
+constexpr int kStatusHeight = 18;
 constexpr int kModeTop = 88;
 constexpr int kKeyAreaTop = 106;
 // How long "pairing reset" stays on screen before the board restarts.
@@ -24,6 +29,24 @@ constexpr uint32_t kResetNoticeMs = 1500;
 constexpr uint16_t kEjectUsage = 0xB8;
 // The iPhone tells a keyboard nothing about app or field changes: a pause starts a new echo line.
 constexpr uint32_t kEchoIdleMs = 10000;
+constexpr uint32_t kBatteryPollMs = 30000;
+constexpr uint32_t kBannerMs = 3000;
+constexpr uint16_t kBannerBackground = 0x0010;
+// Keyboard mode, above the mode line: the context Message or the Banner, a title then text lines.
+constexpr int kContextTextTop = kStatusHeight + 18;
+constexpr int kContextLineHeight = 13;
+constexpr int kMargin = 4;
+// Inbox entry: Chat name line, then preview line.
+constexpr int kRowHeight = 30;
+constexpr int kPreviewOffset = 16;
+constexpr uint16_t kSelectedBackground = 0x2945;
+constexpr KeyPos kUpKey{2, 11};    // ;
+constexpr KeyPos kDownKey{3, 11};  // .
+constexpr KeyPos kOpenKey{2, 13};  // Enter
+constexpr KeyPos kBackKey{0, 0};   // `
+// Chat screen: the Chat name, then one Message line per kLineHeight.
+constexpr int kLineHeight = 16;
+constexpr int kChatTextTop = kStatusHeight + kLineHeight + 2;
 
 bool displayReady = false;
 KeyTracker keyTracker;
@@ -38,16 +61,39 @@ EchoLine echo;
 uint32_t lastReportMs = 0;
 uint32_t keyPressesAtModeStart = 0;
 
-void drawKeyLabel(const char* text) {
-    auto& display = M5Cardputer.Display;
-    display.fillRect(0, kKeyAreaTop, display.width(), display.height() - kKeyAreaTop, TFT_BLACK);
-    display.setTextDatum(middle_center);
-    display.setTextColor(TFT_YELLOW, TFT_BLACK);
-    display.setFont(&fonts::Font4);
-    if (display.textWidth(text) > display.width()) {
-        display.setFont(&fonts::Font2);
-    }
-    display.drawString(text, display.width() / 2, (kKeyAreaTop + display.height()) / 2);
+// Reading mode: the Inbox built from the stored Messages and the user's place in it.
+std::vector<ChatSummary> chats;
+ReadingNav nav;
+// The open Chat screen's lines, rebuilt only when its content changes.
+std::vector<ChatLine> openChatLines;
+// Battery percent, negative when unknown.
+int32_t batteryLevel = -1;
+uint32_t lastBatteryPollMs = 0;
+// Redraw only what changed, once per loop.
+bool statusDirty = true;
+bool screenDirty = true;
+// Keyboard mode: only the area above the mode line changed.
+bool contextDirty = false;
+
+// Keyboard mode: a Message that arrived while typing, shown until bannerUntilMs.
+bool bannerShown = false;
+uint32_t bannerUntilMs = 0;
+std::string bannerChat;
+std::string bannerText;
+// Messages added live so far: one more means a new arrival.
+size_t seenLiveAdded = 0;
+
+bool isKey(KeyPos a, KeyPos b) {
+    return a.row == b.row && a.col == b.col;
+}
+
+// A Message's text as previewed: in groups it starts with its sender.
+std::string withSender(bool group, const std::string& sender, const std::string& text) {
+    return group ? sender + ": " + text : text;
+}
+
+TextWidth displayWidth() {
+    return [](const std::string& text) { return M5Cardputer.Display.textWidth(text.c_str()); };
 }
 
 // The end of the echo line that fits the screen, left-aligned in the key area.
@@ -57,7 +103,6 @@ void drawEcho() {
     display.setTextDatum(middle_left);
     display.setTextColor(TFT_WHITE, TFT_BLACK);
     display.setFont(&fonts::efontCN_16);
-    constexpr int kMargin = 4;
     const std::string& text = echo.text();
     size_t start = 0;
     while (start < text.size() && display.textWidth(text.c_str() + start) > display.width() - 2 * kMargin) {
@@ -68,26 +113,48 @@ void drawEcho() {
     display.drawString(text.c_str() + start, kMargin, (kKeyAreaTop + display.height()) / 2);
 }
 
-void drawStatus() {
-    auto& display = M5Cardputer.Display;
-    display.fillRect(0, kStatusTop, display.width(), kModeTop - kStatusTop, TFT_BLACK);
-    display.setTextDatum(middle_center);
-    display.setTextColor(TFT_CYAN, TFT_BLACK);
-    display.setFont(&fonts::Font2);
-    char text[48];
+const char* linkText() {
     switch (ancs::state()) {
         case ancs::State::Active:
-            snprintf(text, sizeof(text), "WhatsApp: %u messages, %u unread",
-                     static_cast<unsigned>(ancs::messages().size()), static_cast<unsigned>(ancs::messages().unread()));
-            break;
+            return "ANCS active";
         case ancs::State::Denied:
-            snprintf(text, sizeof(text), "ANCS denied");
-            break;
+            return "ANCS denied";
         case ancs::State::Idle:
-            snprintf(text, sizeof(text), "BLE: %s", ble::phaseName(ble::phase()));
             break;
     }
-    display.drawString(text, display.width() / 2, (kStatusTop + kModeTop) / 2);
+    return ble::phaseName(ble::phase());
+}
+
+// Mode on the left, link state after it, unread count and battery on the right.
+void drawStatus() {
+    auto& display = M5Cardputer.Display;
+    display.fillRect(0, 0, display.width(), kStatusHeight, TFT_BLACK);
+    display.drawFastHLine(0, kStatusHeight - 1, display.width(), TFT_DARKGREY);
+    display.setFont(&fonts::Font2);
+    constexpr int y = (kStatusHeight - 1) / 2;
+
+    const char* mode = keyboardMode ? "Keyboard" : "Reading";
+    display.setTextDatum(middle_left);
+    display.setTextColor(keyboardMode ? (keyboardReady ? TFT_GREEN : TFT_RED) : TFT_LIGHTGREY, TFT_BLACK);
+    display.drawString(mode, 2, y);
+    const int linkLeft = 2 + display.textWidth(mode) + 8;
+
+    char right[32];
+    char battery[8];
+    if (batteryLevel < 0) {
+        snprintf(battery, sizeof(battery), "--%%");
+    } else {
+        snprintf(battery, sizeof(battery), "%d%%", static_cast<int>(batteryLevel));
+    }
+    snprintf(right, sizeof(right), "%s unread  %s", unreadLabel(ancs::messages().unread()).c_str(), battery);
+    display.setTextDatum(middle_right);
+    display.setTextColor(TFT_WHITE, TFT_BLACK);
+    display.drawString(right, display.width() - 2, y);
+
+    const int linkWidth = display.width() - 2 - display.textWidth(right) - 8 - linkLeft;
+    display.setTextDatum(middle_left);
+    display.setTextColor(TFT_CYAN, TFT_BLACK);
+    display.drawString(fitWidth(linkText(), linkWidth, displayWidth()).c_str(), linkLeft, y);
 }
 
 void drawMode() {
@@ -95,28 +162,207 @@ void drawMode() {
     display.fillRect(0, kModeTop, display.width(), kKeyAreaTop - kModeTop, TFT_BLACK);
     display.setTextDatum(middle_center);
     display.setFont(&fonts::Font2);
-    const char* text = "Reading mode";
-    uint16_t color = TFT_LIGHTGREY;
-    if (keyboardMode) {
-        text = keyboardReady ? "Keyboard mode" : "Keyboard mode - iPhone not ready";
-        color = keyboardReady ? TFT_GREEN : TFT_RED;
-    }
-    display.setTextColor(color, TFT_BLACK);
-    display.drawString(text, display.width() / 2, (kModeTop + kKeyAreaTop) / 2);
+    display.setTextColor(keyboardReady ? TFT_GREEN : TFT_RED, TFT_BLACK);
+    display.drawString(keyboardReady ? "Keyboard mode" : "Keyboard mode - iPhone not ready", display.width() / 2,
+                       (kModeTop + kKeyAreaTop) / 2);
 }
 
-void drawHello() {
+void drawInboxEntry(const ChatSummary& chat, int top, bool selected) {
     auto& display = M5Cardputer.Display;
-    display.fillScreen(TFT_BLACK);
-    display.setTextDatum(middle_center);
-    display.setTextColor(TFT_WHITE, TFT_BLACK);
-    display.setFont(&fonts::FreeSansBold18pt7b);
-    display.drawString("Hello", display.width() / 2, 26);
-    display.setFont(&fonts::Font2);
-    display.drawString("Tasca v" TASCA_VERSION, display.width() / 2, 52);
-    drawStatus();
-    drawMode();
-    drawKeyLabel("-");
+    const uint16_t background = selected ? kSelectedBackground : TFT_BLACK;
+    display.fillRect(0, top, display.width(), kRowHeight, background);
+    const int right = display.width() - kMargin;
+
+    display.setFont(&fonts::efontCN_16);
+    int nameWidth = right - kMargin;
+    if (chat.unread > 0) {
+        const std::string count = unreadLabel(chat.unread);
+        display.setTextDatum(top_right);
+        display.setTextColor(TFT_GREEN, background);
+        display.drawString(count.c_str(), right, top);
+        nameWidth -= display.textWidth(count.c_str()) + kMargin;
+    }
+    display.setTextDatum(top_left);
+    display.setTextColor(TFT_WHITE, background);
+    display.drawString(fitWidth(displayable(chat.chat, true), nameWidth, displayWidth()).c_str(), kMargin, top);
+
+    display.setFont(&fonts::efontCN_12);
+    display.setTextColor(TFT_LIGHTGREY, background);
+    const std::string preview = withSender(chat.group, chat.sender, chat.text);
+    display.drawString(fitWidth(displayable(preview, true), right - kMargin, displayWidth()).c_str(), kMargin,
+                       top + kPreviewOffset);
+}
+
+void drawInbox() {
+    auto& display = M5Cardputer.Display;
+    display.fillRect(0, kStatusHeight, display.width(), display.height() - kStatusHeight, TFT_BLACK);
+    if (chats.empty()) {
+        display.setFont(&fonts::Font2);
+        display.setTextDatum(middle_center);
+        display.setTextColor(TFT_LIGHTGREY, TFT_BLACK);
+        display.drawString("No messages yet", display.width() / 2, (kStatusHeight + display.height()) / 2);
+        return;
+    }
+    const size_t rows = static_cast<size_t>((display.height() - kStatusHeight) / kRowHeight);
+    const size_t first = nav.firstVisible(rows);
+    for (size_t i = first; i < chats.size() && i < first + rows; i++) {
+        drawInboxEntry(chats[i], kStatusHeight + static_cast<int>(i - first) * kRowHeight, i == nav.selected());
+    }
+}
+
+void drawChat() {
+    auto& display = M5Cardputer.Display;
+    display.fillRect(0, kStatusHeight, display.width(), display.height() - kStatusHeight, TFT_BLACK);
+    display.setFont(&fonts::efontCN_16);
+    display.setTextDatum(top_left);
+    display.setTextColor(TFT_YELLOW, TFT_BLACK);
+    display.drawString(
+        fitWidth(displayable(nav.openedChat(), true), display.width() - 2 * kMargin, displayWidth()).c_str(),
+        kMargin, kStatusHeight);
+    display.drawFastHLine(0, kChatTextTop - 1, display.width(), TFT_DARKGREY);
+    const size_t visible = static_cast<size_t>((display.height() - kChatTextTop) / kLineHeight);
+    for (size_t i = 0; i < visible && nav.chatTop() + i < openChatLines.size(); i++) {
+        const ChatLine& line = openChatLines[nav.chatTop() + i];
+        display.setTextColor(line.header ? TFT_CYAN : TFT_WHITE, TFT_BLACK);
+        display.drawString(line.text.c_str(), kMargin, kChatTextTop + static_cast<int>(i) * kLineHeight);
+    }
+}
+
+// Rebuilds the open Chat screen's lines from the store and clamps its scroll to them.
+void layoutOpenChat() {
+    auto& display = M5Cardputer.Display;
+    display.setFont(&fonts::efontCN_16);
+    openChatLines = chatLines(ancs::messages().messages(), nav.openedChat(), display.width() - 2 * kMargin,
+                              displayWidth());
+    size_t newestStart = 0;
+    for (size_t i = 0; i < openChatLines.size(); i++) {
+        if (openChatLines[i].header) {
+            newestStart = i;
+        }
+    }
+    nav.setChatLines(openChatLines.size(), static_cast<size_t>((display.height() - kChatTextTop) / kLineHeight),
+                     newestStart);
+}
+
+void rebuildInbox() {
+    chats = buildInbox(ancs::messages().messages());
+    nav.sync(chats);
+}
+
+// The Chat screen on display shows its Messages: they are read.
+void readOpenChat() {
+    if (ancs::markChatRead(nav.openedChat())) {
+        rebuildInbox();
+        statusDirty = true;
+    }
+}
+
+void openSelectedChat() {
+    if (!nav.openChat()) {
+        return;
+    }
+    readOpenChat();
+    layoutOpenChat();
+    screenDirty = true;
+}
+
+// The stored Messages changed: rebuild the Inbox, and the open Chat screen unless all its Messages are gone.
+void onMessagesChanged() {
+    rebuildInbox();
+    statusDirty = true;
+    if (nav.inChat()) {
+        const bool chatLeft = std::none_of(chats.begin(), chats.end(),
+                                           [](const ChatSummary& c) { return c.chat == nav.openedChat(); });
+        if (chatLeft) {
+            nav.closeChat();
+            openChatLines.clear();
+        } else {
+            if (!keyboardMode) {
+                readOpenChat();
+            }
+            layoutOpenChat();
+        }
+    }
+    if (keyboardMode) {
+        contextDirty = true;
+    } else {
+        screenDirty = true;
+    }
+}
+
+// A Message that arrived while typing shows as the Banner; in Reading mode the screens show it.
+void pollArrivals() {
+    const MessageStore& store = ancs::messages();
+    if (store.liveAdded() == seenLiveAdded) {
+        return;
+    }
+    seenLiveAdded = store.liveAdded();
+    const Message* newest = store.newestLive();
+    if (!keyboardMode || newest == nullptr) {
+        return;
+    }
+    bannerChat = newest->chat;
+    bannerText = withSender(isGroup(newest->chat, newest->sender), newest->sender, newest->text);
+    bannerShown = true;
+    bannerUntilMs = millis() + kBannerMs;
+    contextDirty = true;
+}
+
+void pollBanner() {
+    if (bannerShown && static_cast<int32_t>(millis() - bannerUntilMs) >= 0) {
+        bannerShown = false;
+        contextDirty = true;
+    }
+}
+
+// A title line, then text wrapped to the lines left above the mode line; the last is cut with "…".
+void drawMessageBox(const std::string& title, const std::string& text, uint16_t titleColor, uint16_t background) {
+    auto& display = M5Cardputer.Display;
+    display.fillRect(0, kStatusHeight, display.width(), kModeTop - kStatusHeight, background);
+    const int width = display.width() - 2 * kMargin;
+    display.setTextDatum(top_left);
+    display.setFont(&fonts::efontCN_16);
+    display.setTextColor(titleColor, background);
+    display.drawString(fitWidth(displayable(title, true), width, displayWidth()).c_str(), kMargin, kStatusHeight + 1);
+    display.setFont(&fonts::efontCN_12);
+    display.setTextColor(TFT_WHITE, background);
+    std::vector<std::string> lines = wrapText(displayable(text, false), width, displayWidth());
+    const size_t fit = static_cast<size_t>((kModeTop - kContextTextTop) / kContextLineHeight);
+    if (lines.size() > fit) {
+        lines[fit - 1] = fitWidth(lines[fit - 1] + " " + lines[fit], width, displayWidth());
+        lines.resize(fit);
+    }
+    for (size_t i = 0; i < lines.size(); i++) {
+        display.drawString(lines[i].c_str(), kMargin, kContextTextTop + static_cast<int>(i) * kContextLineHeight);
+    }
+}
+
+// The Banner while it lasts; otherwise the last Message of the Chat screen Keyboard mode was entered from.
+void drawContext() {
+    if (bannerShown) {
+        drawMessageBox(bannerChat, bannerText, TFT_YELLOW, kBannerBackground);
+        return;
+    }
+    const auto chat = std::find_if(chats.begin(), chats.end(),
+                                   [](const ChatSummary& c) { return nav.inChat() && c.chat == nav.openedChat(); });
+    if (chat == chats.end()) {
+        auto& display = M5Cardputer.Display;
+        display.fillRect(0, kStatusHeight, display.width(), kModeTop - kStatusHeight, TFT_BLACK);
+        return;
+    }
+    drawMessageBox(chat->chat, withSender(chat->group, chat->sender, chat->text), TFT_CYAN, TFT_BLACK);
+}
+
+void drawScreen() {
+    if (keyboardMode) {
+        drawContext();
+        drawMode();
+        drawEcho();
+    } else if (nav.inChat()) {
+        drawChat();
+    } else {
+        drawInbox();
+    }
 }
 
 std::vector<KeyPos> readPressedKeys() {
@@ -139,6 +385,7 @@ void updateKeyboardReady(const std::vector<KeyPos>& pressed) {
     keyboard.reset(pressed);
     // The iPhone released every key; the echo line itself is kept.
     echo.apply(KeyboardReport{});
+    statusDirty = true;
     if (keyboardMode && displayReady) {
         drawMode();
     }
@@ -167,14 +414,14 @@ void setKeyboardMode(bool on, const std::vector<KeyPos>& pressed) {
     }
     echo.clear();
     keyboardMode = on;
-    if (displayReady) {
-        drawMode();
-        if (on) {
-            drawEcho();
-        } else {
-            drawKeyLabel("-");
-        }
+    bannerShown = false;
+    // Back on the Chat screen: what arrived while typing is now on display.
+    if (!on && nav.inChat()) {
+        readOpenChat();
+        layoutOpenChat();
     }
+    statusDirty = true;
+    screenDirty = true;
 }
 
 void pollKeyboardMode(const std::vector<KeyPos>& pressed) {
@@ -215,17 +462,44 @@ void pollReadingMode(const std::vector<KeyPos>& pressed) {
         delay(kResetNoticeMs);
         ESP.restart();
     }
-    bool newPress = false;
     for (const KeyEvent& event : keyTracker.update(pressed)) {
         char text[kKeyTextCapacity];
         formatKeyEvent(text, sizeof(text), event);
         logMessage(LogLevel::Debug, "KEY", "%s", text);
-        newPress |= event.kind == KeyEventKind::Down;
+        if (event.kind != KeyEventKind::Down) {
+            continue;
+        }
+        // Fn is ignored: Fn+; and Fn+. are the arrow legends of the same keys.
+        if (nav.inChat()) {
+            if (isKey(event.key, kUpKey)) {
+                screenDirty |= nav.scrollUp();
+            } else if (isKey(event.key, kDownKey)) {
+                screenDirty |= nav.scrollDown();
+            } else if (isKey(event.key, kBackKey)) {
+                nav.closeChat();
+                openChatLines.clear();
+                screenDirty = true;
+            }
+        } else if (isKey(event.key, kUpKey)) {
+            screenDirty |= nav.up();
+        } else if (isKey(event.key, kDownKey)) {
+            screenDirty |= nav.down();
+        } else if (isKey(event.key, kOpenKey)) {
+            openSelectedChat();
+        }
     }
-    if (newPress && displayReady) {
-        char label[kKeyTextCapacity];
-        formatKeyLabel(label, sizeof(label), keyTracker.lastPressed().key, keyTracker.lastPressed().modifiers);
-        drawKeyLabel(label);
+}
+
+void pollBattery() {
+    if (lastBatteryPollMs != 0 && millis() - lastBatteryPollMs < kBatteryPollMs) {
+        return;
+    }
+    lastBatteryPollMs = millis();
+    const int32_t level = M5Cardputer.Power.getBatteryLevel();
+    const int32_t known = level < 0 ? -1 : (level > 100 ? 100 : level);
+    if (known != batteryLevel) {
+        batteryLevel = known;
+        statusDirty = true;
     }
 }
 
@@ -257,7 +531,7 @@ void setup() {
     M5Cardputer.begin(cfg, true);
     displayReady = M5.getDisplayCount() > 0;
     if (displayReady) {
-        drawHello();
+        M5Cardputer.Display.fillScreen(TFT_BLACK);
     }
 
     Serial.begin(115200);
@@ -274,17 +548,21 @@ void setup() {
         logMessage(LogLevel::Error, "SYS", "display init failed");
     }
 
-    const int32_t battery = M5Cardputer.Power.getBatteryLevel();
-    ble::begin(static_cast<uint8_t>(battery < 0 ? 0 : (battery > 100 ? 100 : battery)));
+    pollBattery();
+    ble::begin(static_cast<uint8_t>(batteryLevel < 0 ? 0 : batteryLevel));
 }
 
 void loop() {
     M5Cardputer.update();
     const bool bleChanged = ble::poll();
     const bool ancsChanged = ancs::poll();
-    if ((bleChanged || ancsChanged) && displayReady) {
-        drawStatus();
+    statusDirty |= bleChanged || ancsChanged;
+    if (ancsChanged) {
+        onMessagesChanged();
+        pollArrivals();
     }
+    pollBanner();
+    pollBattery();
     const std::vector<KeyPos> pressed = readPressedKeys();
     updateKeyboardReady(pressed);
     pollG0(pressed);
@@ -293,5 +571,16 @@ void loop() {
     } else {
         pollReadingMode(pressed);
     }
+    if (displayReady && statusDirty) {
+        drawStatus();
+    }
+    if (displayReady && screenDirty) {
+        drawScreen();
+    } else if (displayReady && contextDirty && keyboardMode) {
+        drawContext();
+    }
+    statusDirty = false;
+    screenDirty = false;
+    contextDirty = false;
     delay(10);
 }

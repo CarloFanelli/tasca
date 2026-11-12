@@ -65,7 +65,7 @@ static void test_memory_over_the_limit_drops_the_oldest_first() {
 static void test_modified_notification_updates_its_message() {
     MessageStore store;
     receive(store, 7, "first");
-    store.markRead(7);
+    store.markChatRead("Anna");
     TEST_ASSERT_TRUE(receive(store, 7, "edited") == MessageStore::Result::Updated);
     TEST_ASSERT_EQUAL(1, store.size());
     TEST_ASSERT_EQUAL_STRING("edited", store.messages().back().text.c_str());
@@ -80,24 +80,15 @@ static void test_update_on_a_full_store_drops_nothing() {
     TEST_ASSERT_EQUAL_STRING("y", store.messages().front().text.c_str());
 }
 
-static void test_removed_notification_marks_its_message_read() {
-    MessageStore store;
-    receive(store, 3, "ciao");
-    TEST_ASSERT_TRUE(store.markRead(3));
-    TEST_ASSERT_EQUAL(0, store.unread());
-    TEST_ASSERT_FALSE(store.markRead(3));  // already read
-    TEST_ASSERT_FALSE(store.markRead(99));  // never stored
-}
-
 static void test_preexisting_copy_after_reconnection_links_the_stored_message() {
     MessageStore store;
     receive(store, 5, "ci sei?");
     store.unlinkAll();
-    TEST_ASSERT_FALSE(store.markRead(5));  // UIDs of the old connection mean nothing now
+    TEST_ASSERT_FALSE(store.remove(5));  // UIDs of the old connection mean nothing now
     TEST_ASSERT_TRUE(receive(store, 0, "ci sei?", true) == MessageStore::Result::Linked);
     TEST_ASSERT_EQUAL(1, store.size());
-    TEST_ASSERT_TRUE(store.markRead(0));
-    TEST_ASSERT_EQUAL(0, store.unread());
+    TEST_ASSERT_TRUE(store.remove(0));
+    TEST_ASSERT_EQUAL(0, store.size());
 }
 
 static void test_identical_live_messages_are_both_stored() {
@@ -125,6 +116,75 @@ static void test_preexisting_with_other_content_is_added() {
     TEST_ASSERT_TRUE(receive(store, 0, "ok!", true) == MessageStore::Result::Added);
 }
 
+static void test_chat_read_marks_only_that_chat() {
+    MessageStore store;
+    store.receive(1, false, {"Anna", "Anna"}, "a", kDate);
+    store.receive(2, false, {"Calcetto", "Luca"}, "b", kDate);
+    store.receive(3, false, {"Anna", "Anna"}, "c", kDate);
+    TEST_ASSERT_EQUAL(2, store.markChatRead("Anna"));
+    TEST_ASSERT_EQUAL(1, store.unread());
+    TEST_ASSERT_EQUAL(0, store.markChatRead("Anna"));
+}
+
+static void test_only_live_new_messages_count_as_arrivals() {
+    MessageStore store;
+    TEST_ASSERT_EQUAL(0, store.liveAdded());
+    store.receive(1, false, {"Anna", "Anna"}, "a", kDate);
+    TEST_ASSERT_EQUAL(1, store.liveAdded());
+    store.receive(1, false, {"Anna", "Anna"}, "a corretto", kDate);
+    TEST_ASSERT_EQUAL(1, store.liveAdded());
+    store.receive(2, true, {"Bruno", "Bruno"}, "vecchio", kDate);
+    TEST_ASSERT_EQUAL(1, store.liveAdded());
+    store.receive(3, false, {"Carla", "Carla"}, "b", kDate);
+    TEST_ASSERT_EQUAL(2, store.liveAdded());
+    TEST_ASSERT_EQUAL_STRING("Carla", store.messages().back().chat.c_str());
+}
+
+static void test_removed_message_leaves_the_store() {
+    MessageStore store;
+    store.receive(1, false, {"Anna", "Anna"}, "a", kDate);
+    store.receive(2, false, {"Anna", "Anna"}, "b", kDate);
+    const size_t before = store.memoryBytes();
+    TEST_ASSERT_TRUE(store.remove(1));
+    TEST_ASSERT_EQUAL(1, store.size());
+    TEST_ASSERT_EQUAL_STRING("b", store.messages().front().text.c_str());
+    TEST_ASSERT_TRUE(store.memoryBytes() < before);
+    TEST_ASSERT_FALSE(store.remove(1));
+    TEST_ASSERT_FALSE(store.remove(99));
+}
+
+static void test_message_read_on_the_cardputer_is_removed_too() {
+    MessageStore store;
+    store.receive(1, false, {"Anna", "Anna"}, "a", kDate);
+    store.markChatRead("Anna");
+    TEST_ASSERT_TRUE(store.remove(1));
+    TEST_ASSERT_EQUAL(0, store.size());
+}
+
+static void test_unlinked_messages_are_removed_after_import() {
+    MessageStore store;
+    store.receive(1, false, {"Anna", "Anna"}, "ancora sul telefono", kDate);
+    store.receive(2, false, {"Anna", "Anna"}, "letto da spento", kDate);
+    store.unlinkAll();
+    store.receive(7, true, {"Anna", "Anna"}, "ancora sul telefono", kDate);
+    store.receive(8, false, {"Bruno", "Bruno"}, "nuovo", kDate);
+    TEST_ASSERT_EQUAL(1, store.removeUnlinked());
+    TEST_ASSERT_EQUAL(2, store.size());
+    TEST_ASSERT_EQUAL_STRING("ancora sul telefono", store.messages().front().text.c_str());
+    TEST_ASSERT_EQUAL(0, store.removeUnlinked());
+}
+
+static void test_newest_live_message_is_not_a_later_preexisting_one() {
+    MessageStore store;
+    TEST_ASSERT_NULL(store.newestLive());
+    store.receive(1, false, {"Anna", "Anna"}, "appena arrivato", kDate);
+    store.receive(2, true, {"Bruno", "Bruno"}, "vecchio", kDate);
+    TEST_ASSERT_NOT_NULL(store.newestLive());
+    TEST_ASSERT_EQUAL_STRING("appena arrivato", store.newestLive()->text.c_str());
+    store.remove(1);
+    TEST_ASSERT_NULL(store.newestLive());
+}
+
 int main() {
     UNITY_BEGIN();
     RUN_TEST(test_new_message_is_unread_and_complete);
@@ -134,10 +194,15 @@ int main() {
     RUN_TEST(test_memory_over_the_limit_drops_the_oldest_first);
     RUN_TEST(test_modified_notification_updates_its_message);
     RUN_TEST(test_update_on_a_full_store_drops_nothing);
-    RUN_TEST(test_removed_notification_marks_its_message_read);
     RUN_TEST(test_preexisting_copy_after_reconnection_links_the_stored_message);
     RUN_TEST(test_identical_live_messages_are_both_stored);
     RUN_TEST(test_two_identical_preexisting_copies_keep_two_messages);
     RUN_TEST(test_preexisting_with_other_content_is_added);
+    RUN_TEST(test_chat_read_marks_only_that_chat);
+    RUN_TEST(test_only_live_new_messages_count_as_arrivals);
+    RUN_TEST(test_removed_message_leaves_the_store);
+    RUN_TEST(test_message_read_on_the_cardputer_is_removed_too);
+    RUN_TEST(test_unlinked_messages_are_removed_after_import);
+    RUN_TEST(test_newest_live_message_is_not_a_later_preexisting_one);
     return UNITY_END();
 }

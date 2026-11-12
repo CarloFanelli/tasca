@@ -2,6 +2,8 @@
 
 #include <stdint.h>
 
+#include <string>
+
 #include "core/message_store.h"
 
 // Apple Notification Center Service client, on the connection where the Cardputer is peripheral.
@@ -20,7 +22,10 @@ void onDisconnected();
 bool poll();
 
 State state();
-// The WhatsApp Messages received; written only by poll().
+// The WhatsApp Messages received; written only from loop().
 const MessageStore& messages();
+
+// Marks every Message of chat read on the Cardputer; true when one was unread. loop() only.
+bool markChatRead(const std::string& chat);
 
 }  // namespace ancs

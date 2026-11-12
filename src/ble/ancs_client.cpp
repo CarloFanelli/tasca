@@ -11,6 +11,7 @@
 
 #include "core/ancs_request.h"
 #include "core/chat_key.h"
+#include "core/reconnect_import.h"
 #include "log.h"
 
 namespace ancs {
@@ -65,6 +66,7 @@ Request inFlight{};
 uint32_t inFlightSinceMs = 0;
 AncsResponseDecoder response;
 uint32_t otherAppNotifications = 0;
+ReconnectImport import;
 
 // Runs on the BLE host task: only copies the packet for loop().
 template <size_t N>
@@ -170,6 +172,7 @@ bool setUp(uint16_t connHandle) {
     }
     logMessage(LogLevel::Info, "ANCS", "subscribed: data source, notification source");
     controlPoint = controlPointCharacteristic;
+    import.start(millis());
     return setState(State::Active);
 }
 
@@ -180,16 +183,21 @@ bool handleEvent(const NsPacket& packet) {
     if (controlPoint == nullptr || !decodeAncsEvent(packet.data, packet.length, &event)) {
         return false;
     }
+    // Gone from the iPhone (read or cleared there): gone from the Cardputer too.
     if (event.kind == AncsEvent::Kind::Removed) {
-        if (!store.markRead(event.uid)) {
+        if (!store.remove(event.uid)) {
             return false;
         }
-        logMessage(LogLevel::Debug, "MSG", "read: uid=%u", static_cast<unsigned>(event.uid));
+        logMessage(LogLevel::Debug, "MSG", "removed: uid=%u", static_cast<unsigned>(event.uid));
         logCounts();
         return true;
     }
+    if (event.preExisting) {
+        import.onPreExistingEvent(millis());
+    }
     if (pendingRequests.size() >= kMaxPendingRequests) {
         droppedRequests++;
+        import.onFailure();
         return false;
     }
     pendingRequests.push_back({event.uid, event.preExisting});
@@ -202,6 +210,7 @@ void sendNextRequest() {
         logMessage(LogLevel::Warn, "ANCS", "no response for uid=%u within %u ms", static_cast<unsigned>(inFlight.uid),
                    static_cast<unsigned>(kResponseTimeoutMs));
         response.clear();
+        import.onFailure();
     }
     while (!response.active() && controlPoint != nullptr && !pendingRequests.empty()) {
         const Request next = pendingRequests.front();
@@ -224,8 +233,32 @@ void sendNextRequest() {
 void logDropped(const char* channel, std::atomic<uint32_t>& dropped) {
     const uint32_t count = dropped.exchange(0);
     if (count > 0) {
+        import.onFailure();
         logMessage(LogLevel::Warn, "ANCS", "%s queue full: %u packets dropped", channel, static_cast<unsigned>(count));
     }
+}
+
+// Once the notifications resent at connection are all answered, Messages the iPhone no longer has
+// were read or cleared there while disconnected: remove them. Returns true when the store changed.
+bool finishImport() {
+    size_t waiting = response.active() && inFlight.preExisting ? 1 : 0;
+    for (const Request& r : pendingRequests) {
+        waiting += r.preExisting ? 1 : 0;
+    }
+    if (!import.finished(millis(), waiting)) {
+        return false;
+    }
+    if (!import.complete()) {
+        logMessage(LogLevel::Warn, "MSG", "import incomplete: no Message removed");
+        return false;
+    }
+    const size_t removed = store.removeUnlinked();
+    logMessage(LogLevel::Info, "MSG", "import done: %u gone from the iPhone removed", static_cast<unsigned>(removed));
+    if (removed == 0) {
+        return false;
+    }
+    logCounts();
+    return true;
 }
 
 }  // namespace
@@ -254,6 +287,7 @@ void onDisconnected() {
     }
     pendingRequests.clear();
     response.clear();
+    import.cancel();
     // UIDs restart at the next connection: Messages are matched again by content then.
     store.unlinkAll();
 }
@@ -280,6 +314,7 @@ bool poll() {
         logMessage(LogLevel::Warn, "ANCS", "response for uid=%u lost a packet: discarded",
                    static_cast<unsigned>(inFlight.uid));
         response.clear();
+        import.onFailure();
     }
     DsPacket ds;
     while (xQueueReceive(dsQueue, &ds, 0) == pdTRUE) {
@@ -295,6 +330,7 @@ bool poll() {
             case AncsResponseDecoder::Result::Malformed:
                 logMessage(LogLevel::Warn, "ANCS", "malformed response for uid=%u: discarded",
                            static_cast<unsigned>(inFlight.uid));
+                import.onFailure();
                 break;
             case AncsResponseDecoder::Result::Ignored:
             case AncsResponseDecoder::Result::Progress:
@@ -304,6 +340,7 @@ bool poll() {
     logDropped("NS", droppedNs);
     logDropped("DS", droppedDs);
     sendNextRequest();
+    changed |= finishImport();
     return changed;
 }
 
@@ -313,6 +350,14 @@ State state() {
 
 const MessageStore& messages() {
     return store;
+}
+
+bool markChatRead(const std::string& chat) {
+    if (store.markChatRead(chat) == 0) {
+        return false;
+    }
+    logCounts();
+    return true;
 }
 
 }  // namespace ancs
