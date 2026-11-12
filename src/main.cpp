@@ -546,6 +546,12 @@ void setKeyboardMode(bool on, const std::vector<KeyPos>& pressed) {
 
 // Siri starts on a held command, as on a headset button: it stays down until Enter is released.
 bool siriHeld = false;
+// After Fn+Enter, ` closes Siri with Esc instead of its usual use, until another key or kSiriOpenMs:
+// Siri may have closed on its own by then.
+constexpr uint32_t kSiriOpenMs = 60000;
+constexpr uint8_t kEscUsage = 0x29;
+bool siriOpen = false;
+uint32_t siriOpenedMs = 0;
 
 void requestSiri() {
     if (!keyboardReady) {
@@ -557,7 +563,28 @@ void requestSiri() {
         return;
     }
     siriHeld = true;
+    siriOpen = true;
+    siriOpenedMs = millis();
     logMessage(LogLevel::Info, "HID", "siri requested");
+}
+
+// A key pressed after Fn+Enter: ` closes Siri and does nothing else (true); any key ends the window.
+bool closeSiriOnBack(const KeyEvent& event) {
+    if (!siriOpen || event.kind != KeyEventKind::Down) {
+        return false;
+    }
+    siriOpen = false;
+    if (!isKey(event.key, kBackKey) || event.modifiers != 0 || millis() - siriOpenedMs >= kSiriOpenMs) {
+        return false;
+    }
+    KeyboardReport esc{};
+    esc[2] = kEscUsage;
+    if (!keyboardReady || !sendKeyboardReport(esc) || !sendKeyboardReport(KeyboardReport{})) {
+        logMessage(LogLevel::Warn, "HID", "siri close not sent");
+    } else {
+        logMessage(LogLevel::Info, "HID", "siri closed");
+    }
+    return true;
 }
 
 void releaseSiri(const KeyEvent& event) {
@@ -577,6 +604,10 @@ void pollKeyboardMode(const std::vector<KeyPos>& pressed) {
         releaseSiri(event);
         if (event.kind == KeyEventKind::Down) {
             wakeScreen();
+        }
+        // The ` that closed Siri is not typed: held keys wait for their release.
+        if (closeSiriOnBack(event)) {
+            keyboard.reset(pressed);
         }
     }
     pairingResetCombo.update({}, millis());
@@ -688,6 +719,9 @@ void pollReadingMode(const std::vector<KeyPos>& pressed) {
         releaseSiri(event);
         // A key that turns the screen on does nothing else.
         if (event.kind != KeyEventKind::Down || wakeScreen()) {
+            continue;
+        }
+        if (closeSiriOnBack(event)) {
             continue;
         }
         // Fn+Enter starts Siri; the screen stays as it is, since the request is spoken.

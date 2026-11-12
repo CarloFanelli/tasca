@@ -1,6 +1,6 @@
 ---
 feature: siri-reply
-version: 1.1
+version: 1.2
 status: approved
 completed: false
 base: e7d3cfba187ed44dd7d2e7dc526c2875408fd574
@@ -27,6 +27,7 @@ Finds out whether the Cardputer can reply to WhatsApp through Siri, without taki
 - REQ-1: Fn+Enter in Reading mode or Keyboard mode asks the iPhone to start Siri.
 - REQ-2: Fn+Enter leaves the mode and screen unchanged: Reading mode stays on its screen, Keyboard mode keeps typing.
 - REQ-3: Fn+Enter types nothing on the iPhone and never opens the Chat screen.
+- REQ-8: The first `` ` `` after Fn+Enter sends Esc to the iPhone to close Siri, in both modes, within 60 s.
 
 ### Verification on the iPhone
 
@@ -54,6 +55,10 @@ Finds out whether the Cardputer can reply to WhatsApp through Siri, without taki
 | Fn+Enter with the screen off | In Reading mode only wakes the screen, as any key; in Keyboard mode wakes it and starts Siri | REQ-1, REQ-2 |
 | Fn+Enter on the Settings screen or in a Chat screen | Starts Siri; the screen stays as it is | REQ-2, REQ-3 |
 | Fn+Enter while an action waits for confirmation | Prompt cancelled, as any other key; Siri started | REQ-2, REQ-3 |
+| Another key before `` ` `` after Fn+Enter | `` ` `` back to its usual use (back on the Cardputer, typed in Keyboard mode) | REQ-8 |
+| `` ` `` more than 60 s after Fn+Enter | Usual use: Siri may have closed on its own | REQ-8 |
+| `` ` `` with the screen off after Fn+Enter | Reading mode: only wakes the screen; Keyboard mode: wakes it and closes Siri | REQ-8 |
+| `` ` `` after Fn+Enter with the iPhone not ready | Nothing sent; `W` line; `` ` `` does nothing else | REQ-8 |
 | Enter without Fn | Unchanged: opens a Chat, confirms an action, or sends Enter in Keyboard mode | REQ-3 |
 | Siri disabled on the iPhone, or not allowed when locked | Nothing visible on the Cardputer; the README lists the setting | REQ-4, REQ-6 |
 | Siri asks for confirmation ("Send it?") | Answered by voice | REQ-5 |
