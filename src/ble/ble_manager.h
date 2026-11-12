@@ -18,6 +18,10 @@ bool poll();
 // list a device it has just forgotten until that device starts over.
 bool resetPairing();
 
+// Asks the iPhone for slow, power-saving link timings (slow) or the usual ones, on the secured
+// connection. iOS may grant other values: they are logged. Call from loop() only.
+void requestTimings(bool slow);
+
 Phase phase();
 const char* phaseName(Phase phase);
 

@@ -28,4 +28,7 @@ const MessageStore& messages();
 // Marks every Message of chat read on the Cardputer; true when one was unread. loop() only.
 bool markChatRead(const std::string& chat);
 
+// Removes every Message; those still on the iPhone come back at the next connection. loop() only.
+void clearMessages();
+
 }  // namespace ancs

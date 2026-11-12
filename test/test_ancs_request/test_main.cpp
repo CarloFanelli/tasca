@@ -65,6 +65,16 @@ static void test_events_are_decoded_with_kind_uid_and_preexisting_flag() {
     TEST_ASSERT_TRUE(event.kind == AncsEvent::Kind::Removed);
 }
 
+static void test_event_category_is_decoded() {
+    const uint8_t social[] = {0x00, 0x00, 0x04, 0x01, 0x6d, 0x02, 0x03, 0x04};
+    const uint8_t email[] = {0x00, 0x00, 0x06, 0x01, 0x6d, 0x02, 0x03, 0x04};
+    AncsEvent event;
+    TEST_ASSERT_TRUE(decodeAncsEvent(social, sizeof(social), &event));
+    TEST_ASSERT_EQUAL_UINT8(4, event.category);
+    TEST_ASSERT_TRUE(decodeAncsEvent(email, sizeof(email), &event));
+    TEST_ASSERT_EQUAL_UINT8(6, event.category);
+}
+
 static void test_short_or_unknown_event_is_rejected() {
     const uint8_t truncated[] = {0x00, 0x10, 0x04, 0x01, 0x6d};
     const uint8_t unknown[] = {0x07, 0x00, 0x04, 0x01, 0x6d, 0x02, 0x03, 0x04};
@@ -209,6 +219,7 @@ int main() {
     UNITY_BEGIN();
     RUN_TEST(test_request_asks_the_five_attributes_with_their_limits);
     RUN_TEST(test_events_are_decoded_with_kind_uid_and_preexisting_flag);
+    RUN_TEST(test_event_category_is_decoded);
     RUN_TEST(test_short_or_unknown_event_is_rejected);
     RUN_TEST(test_response_in_one_packet_completes);
     RUN_TEST(test_response_split_inside_a_length_field_completes_on_the_last_fragment);

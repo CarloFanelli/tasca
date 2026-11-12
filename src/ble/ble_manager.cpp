@@ -19,21 +19,43 @@ constexpr uint16_t kKeyboardAppearance = 0x03C1;
 constexpr uint8_t kAdTypeSolicitation128 = 0x15;
 constexpr UBaseType_t kEventQueueDepth = 16;
 
+// Link timings in Bluetooth units (interval 1.25 ms, timeout 10 ms), within Apple's rules for
+// accessories: interval min >= 15 ms, max >= min + 15 ms, latency <= 30, timeout 2-6 s and above
+// max interval * (latency + 1) * 3.
+struct Timings {
+    uint16_t minInterval;
+    uint16_t maxInterval;
+    uint16_t latency;
+    uint16_t timeout;
+};
+// 15-30 ms, every event, 2 s.
+constexpr Timings kUsualTimings{12, 24, 0, 200};
+// 120-150 ms, up to 4 events skipped, 6 s.
+constexpr Timings kSlowTimings{96, 120, 4, 600};
+
 const NimBLEUUID kHidServiceUuid(static_cast<uint16_t>(0x1812));
 const NimBLEUUID kAncsServiceUuid("7905F431-B5CE-4E99-A40F-4B1E122D00D0");
 
 struct Event {
-    enum class Type : uint8_t { Connect, Disconnect, Authentication } type;
+    enum class Type : uint8_t { Connect, Disconnect, Authentication, TimingsUpdate } type;
     uint16_t connHandle;
     int reason;
     bool encrypted;
     bool bonded;
     ble_addr_t peer;
+    // TimingsUpdate: the link timings now in use, in Bluetooth units.
+    uint16_t interval;
+    uint16_t latency;
+    uint16_t timeout;
 };
 
 QueueHandle_t events = nullptr;
 std::atomic<uint32_t> droppedEvents{0};
 Phase currentPhase = Phase::Advertising;
+uint16_t securedConn = BLE_HS_CONN_HANDLE_NONE;
+bool slowRequested = false;
+// A request was sent and its outcome is not known yet; updates the iPhone starts itself are only logged.
+bool timingsPending = false;
 
 // Runs on the BLE host task: only copies the event for loop().
 void enqueue(const Event& event) {
@@ -55,6 +77,12 @@ class ServerCallbacks : public NimBLEServerCallbacks {
     void onAuthenticationComplete(NimBLEConnInfo& info) override {
         enqueue({Event::Type::Authentication, info.getConnHandle(), 0, info.isEncrypted(), info.isBonded(),
                  info.getIdAddress().getBase()[0]});
+    }
+
+    // Called with the resulting timings, whether or not the iPhone granted the request.
+    void onConnParamsUpdate(NimBLEConnInfo& info) override {
+        enqueue({Event::Type::TimingsUpdate, info.getConnHandle(), 0, false, false, info.getIdAddress().getBase()[0],
+                 info.getConnInterval(), info.getConnLatency(), info.getConnTimeout()});
     }
 };
 
@@ -90,6 +118,21 @@ bool setPhase(Phase next) {
     return true;
 }
 
+// No retry when refused: the next request comes with the next screen change.
+void logTimings(const Event& event) {
+    logMessage(LogLevel::Info, "BLE", "link timings interval=%u.%02u ms latency=%u timeout=%u ms",
+               static_cast<unsigned>(event.interval * 125 / 100), static_cast<unsigned>(event.interval * 125 % 100),
+               static_cast<unsigned>(event.latency), static_cast<unsigned>(event.timeout * 10));
+    if (!timingsPending) {
+        return;
+    }
+    timingsPending = false;
+    const Timings& requested = slowRequested ? kSlowTimings : kUsualTimings;
+    if (event.interval < requested.minInterval || event.interval > requested.maxInterval) {
+        logMessage(LogLevel::Warn, "BLE", "%s link timings refused by the iPhone", slowRequested ? "slow" : "usual");
+    }
+}
+
 bool handle(const Event& event) {
     const NimBLEAddress peer(event.peer);
     switch (event.type) {
@@ -103,6 +146,8 @@ bool handle(const Event& event) {
             logMessage(LogLevel::Info, "BLE", "disconnected reason=0x%x advertising=%s", event.reason,
                        NimBLEDevice::getAdvertising()->isAdvertising() ? "yes" : "no");
             ancs::onDisconnected();
+            securedConn = BLE_HS_CONN_HANDLE_NONE;
+            timingsPending = false;
             // A failed pairing stays visible while advertising, until the next connection.
             return currentPhase == Phase::PairingFailed ? false : setPhase(Phase::Advertising);
 
@@ -120,8 +165,13 @@ bool handle(const Event& event) {
             }
             logMessage(LogLevel::Info, "BLE", "secured bonded=%s peer=%s", event.bonded ? "yes" : "no",
                        peer.toString().c_str());
+            securedConn = event.connHandle;
             ancs::onSecured(event.connHandle);
             return setPhase(Phase::Secured);
+
+        case Event::Type::TimingsUpdate:
+            logTimings(event);
+            return false;
     }
     return false;
 }
@@ -178,6 +228,17 @@ bool resetPairing() {
     }
     logMessage(LogLevel::Info, "BLE", "pairing reset: %d bond(s) erased", bonds);
     return setPhase(Phase::PairingReset);
+}
+
+void requestTimings(bool slow) {
+    slowRequested = slow;
+    if (securedConn == BLE_HS_CONN_HANDLE_NONE) {
+        return;
+    }
+    const Timings& t = slow ? kSlowTimings : kUsualTimings;
+    NimBLEDevice::getServer()->updateConnParams(securedConn, t.minInterval, t.maxInterval, t.latency, t.timeout);
+    timingsPending = true;
+    logMessage(LogLevel::Debug, "BLE", "%s link timings requested", slow ? "slow" : "usual");
 }
 
 Phase phase() {

@@ -185,6 +185,17 @@ static void test_newest_live_message_is_not_a_later_preexisting_one() {
     TEST_ASSERT_NULL(store.newestLive());
 }
 
+static void test_clear_empties_the_store() {
+    MessageStore store;
+    receive(store, 1, "Ciao");
+    receive(store, 2, "Ci sei?");
+    store.clear();
+    TEST_ASSERT_EQUAL(0, store.size());
+    TEST_ASSERT_EQUAL(0, store.unread());
+    TEST_ASSERT_EQUAL(0, store.memoryBytes());
+    TEST_ASSERT_NULL(store.newestLive());
+}
+
 int main() {
     UNITY_BEGIN();
     RUN_TEST(test_new_message_is_unread_and_complete);
@@ -204,5 +215,6 @@ int main() {
     RUN_TEST(test_message_read_on_the_cardputer_is_removed_too);
     RUN_TEST(test_unlinked_messages_are_removed_after_import);
     RUN_TEST(test_newest_live_message_is_not_a_later_preexisting_one);
+    RUN_TEST(test_clear_empties_the_store);
     return UNITY_END();
 }

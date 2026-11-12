@@ -14,8 +14,12 @@
 #include "core/key_events.h"
 #include "core/keymap.h"
 #include "core/reading_nav.h"
+#include "core/screen_timer.h"
+#include "core/settings.h"
+#include "core/settings_nav.h"
 #include "core/utf8.h"
 #include "log.h"
+#include "settings_store.h"
 
 namespace {
 
@@ -40,10 +44,19 @@ constexpr int kMargin = 4;
 constexpr int kRowHeight = 30;
 constexpr int kPreviewOffset = 16;
 constexpr uint16_t kSelectedBackground = 0x2945;
+// Settings screen: how long an action's prompt waits for the second Enter.
+constexpr uint32_t kConfirmMs = 3000;
+// One short beep per live Message, with a pause between beeps so that each one is heard.
+constexpr float kBeepHz = 2000;
+constexpr uint32_t kBeepMs = 80;
+constexpr uint32_t kBeepGapMs = 120;
 constexpr KeyPos kUpKey{2, 11};    // ;
 constexpr KeyPos kDownKey{3, 11};  // .
 constexpr KeyPos kOpenKey{2, 13};  // Enter
 constexpr KeyPos kBackKey{0, 0};   // `
+constexpr KeyPos kSettingsKey{2, 3};  // s, with Opt
+constexpr KeyPos kPrevKey{3, 10};     // ,
+constexpr KeyPos kNextKey{3, 12};     // /
 // Chat screen: the Chat name, then one Message line per kLineHeight.
 constexpr int kLineHeight = 16;
 constexpr int kChatTextTop = kStatusHeight + kLineHeight + 2;
@@ -66,6 +79,13 @@ std::vector<ChatSummary> chats;
 ReadingNav nav;
 // The open Chat screen's lines, rebuilt only when its content changes.
 std::vector<ChatLine> openChatLines;
+// The Settings screen covers the Inbox or Chat screen it was opened from, which stays as it was.
+Settings settings;
+// The actions listed after the settings.
+constexpr const char* kActions[] = {"Reset pairing", "Clear messages"};
+constexpr size_t kActionCount = sizeof(kActions) / sizeof(kActions[0]);
+SettingsNav settingsNav(kSettingCount, kActionCount, kConfirmMs);
+bool settingsOpen = false;
 // Battery percent, negative when unknown.
 int32_t batteryLevel = -1;
 uint32_t lastBatteryPollMs = 0;
@@ -82,6 +102,50 @@ std::string bannerChat;
 std::string bannerText;
 // Messages added live so far: one more means a new arrival.
 size_t seenLiveAdded = 0;
+size_t pendingBeeps = 0;
+uint32_t nextBeepMs = 0;
+// While the screen is off nothing is drawn: the dirty flags stay set until it is on again.
+ScreenTimer screenTimer;
+
+bool canDraw() {
+    return displayReady && !screenTimer.off();
+}
+
+// A key, G0 or live Message: the display timeout restarts. True when this turned the screen on.
+bool wakeScreen() {
+    if (!screenTimer.activity(millis())) {
+        return false;
+    }
+    // Before any key is sent: with the slow timings a key would wait up to a slow interval.
+    ble::requestTimings(false);
+    if (displayReady) {
+        M5Cardputer.Display.wakeup();
+    }
+    logMessage(LogLevel::Debug, "SYS", "screen on");
+    statusDirty = true;
+    screenDirty = true;
+    return true;
+}
+
+void pollScreenTimeout() {
+    if (!screenTimer.expire(millis())) {
+        return;
+    }
+    if (displayReady) {
+        M5Cardputer.Display.sleep();
+    }
+    logMessage(LogLevel::Debug, "SYS", "screen off");
+    ble::requestTimings(true);
+}
+
+void pollBeeps() {
+    if (pendingBeeps == 0 || static_cast<int32_t>(millis() - nextBeepMs) < 0) {
+        return;
+    }
+    pendingBeeps--;
+    M5Cardputer.Speaker.tone(kBeepHz, kBeepMs);
+    nextBeepMs = millis() + kBeepMs + kBeepGapMs;
+}
 
 bool isKey(KeyPos a, KeyPos b) {
     return a.row == b.row && a.col == b.col;
@@ -228,6 +292,51 @@ void drawChat() {
     }
 }
 
+// The title, then one row per setting, its name on the left and its value on the right, then one row
+// per action, replaced by its prompt while it waits for confirmation.
+void drawSettings() {
+    auto& display = M5Cardputer.Display;
+    display.fillRect(0, kStatusHeight, display.width(), display.height() - kStatusHeight, TFT_BLACK);
+    display.setFont(&fonts::efontCN_16);
+    display.setTextDatum(top_left);
+    display.setTextColor(TFT_YELLOW, TFT_BLACK);
+    display.drawString("Settings", kMargin, kStatusHeight);
+    display.drawFastHLine(0, kChatTextTop - 1, display.width(), TFT_DARKGREY);
+    for (size_t i = 0; i < kSettingCount; i++) {
+        const Setting setting = static_cast<Setting>(i);
+        const int top = kChatTextTop + static_cast<int>(i) * kLineHeight;
+        const uint16_t background = i == settingsNav.selected() ? kSelectedBackground : TFT_BLACK;
+        display.fillRect(0, top, display.width(), kLineHeight, background);
+        display.setTextDatum(top_left);
+        display.setTextColor(TFT_WHITE, background);
+        display.drawString(settingName(setting), kMargin, top);
+        display.setTextDatum(top_right);
+        display.setTextColor(TFT_GREEN, background);
+        display.drawString(settings.label(setting).c_str(), display.width() - kMargin, top);
+    }
+    for (size_t i = 0; i < kActionCount; i++) {
+        const size_t row = kSettingCount + i;
+        const int top = kChatTextTop + static_cast<int>(row) * kLineHeight;
+        const bool selected = row == settingsNav.selected();
+        const uint16_t background = selected ? kSelectedBackground : TFT_BLACK;
+        display.fillRect(0, top, display.width(), kLineHeight, background);
+        display.setTextDatum(top_left);
+        if (selected && settingsNav.confirming()) {
+            display.setTextColor(TFT_RED, background);
+            display.drawString("Press Enter to confirm", kMargin, top);
+        } else {
+            display.setTextColor(TFT_ORANGE, background);
+            display.drawString(kActions[i], kMargin, top);
+        }
+    }
+}
+
+void applyBrightness() {
+    if (displayReady) {
+        M5Cardputer.Display.setBrightness(settings.brightnessPercent() * 255 / 100);
+    }
+}
+
 // Rebuilds the open Chat screen's lines from the store and clamps its scroll to them.
 void layoutOpenChat() {
     auto& display = M5Cardputer.Display;
@@ -277,7 +386,7 @@ void onMessagesChanged() {
             nav.closeChat();
             openChatLines.clear();
         } else {
-            if (!keyboardMode) {
+            if (!keyboardMode && !settingsOpen) {
                 readOpenChat();
             }
             layoutOpenChat();
@@ -285,18 +394,25 @@ void onMessagesChanged() {
     }
     if (keyboardMode) {
         contextDirty = true;
-    } else {
+    } else if (!settingsOpen) {
         screenDirty = true;
     }
 }
 
-// A Message that arrived while typing shows as the Banner; in Reading mode the screens show it.
+// Each live Message beeps and can turn the screen on. One that arrived while typing shows as the Banner;
+// in Reading mode the screens show it.
 void pollArrivals() {
     const MessageStore& store = ancs::messages();
     if (store.liveAdded() == seenLiveAdded) {
         return;
     }
+    if (settings.sound()) {
+        pendingBeeps += store.liveAdded() - seenLiveAdded;
+    }
     seenLiveAdded = store.liveAdded();
+    if (settings.wakeOnMessage()) {
+        wakeScreen();
+    }
     const Message* newest = store.newestLive();
     if (!keyboardMode || newest == nullptr) {
         return;
@@ -358,6 +474,8 @@ void drawScreen() {
         drawContext();
         drawMode();
         drawEcho();
+    } else if (settingsOpen) {
+        drawSettings();
     } else if (nav.inChat()) {
         drawChat();
     } else {
@@ -386,7 +504,7 @@ void updateKeyboardReady(const std::vector<KeyPos>& pressed) {
     // The iPhone released every key; the echo line itself is kept.
     echo.apply(KeyboardReport{});
     statusDirty = true;
-    if (keyboardMode && displayReady) {
+    if (keyboardMode && canDraw()) {
         drawMode();
     }
 }
@@ -416,7 +534,7 @@ void setKeyboardMode(bool on, const std::vector<KeyPos>& pressed) {
     keyboardMode = on;
     bannerShown = false;
     // Back on the Chat screen: what arrived while typing is now on display.
-    if (!on && nav.inChat()) {
+    if (!on && nav.inChat() && !settingsOpen) {
         readOpenChat();
         layoutOpenChat();
     }
@@ -425,8 +543,13 @@ void setKeyboardMode(bool on, const std::vector<KeyPos>& pressed) {
 }
 
 void pollKeyboardMode(const std::vector<KeyPos>& pressed) {
-    // Typed text never reaches the serial log: no KEY lines in this mode.
-    keyTracker.update(pressed);
+    // Typed text never reaches the serial log: no KEY lines in this mode. A key that turns the screen on
+    // still reaches the iPhone.
+    for (const KeyEvent& event : keyTracker.update(pressed)) {
+        if (event.kind == KeyEventKind::Down) {
+            wakeScreen();
+        }
+    }
     pairingResetCombo.update({}, millis());
     if (!keyboardReady) {
         return;
@@ -444,7 +567,7 @@ void pollKeyboardMode(const std::vector<KeyPos>& pressed) {
         echo.clear();
         echoChanged = true;
     }
-    if (echoChanged && displayReady) {
+    if (echoChanged && canDraw()) {
         drawEcho();
     }
     if (keyboard.takeEject() && !ble::sendConsumerUsage(kEjectUsage)) {
@@ -452,25 +575,95 @@ void pollKeyboardMode(const std::vector<KeyPos>& pressed) {
     }
 }
 
+void restartAfterPairingReset() {
+    if (canDraw()) {
+        drawStatus();
+    }
+    logMessage(LogLevel::Info, "SYS", "restarting after pairing reset");
+    Serial.flush();
+    delay(kResetNoticeMs);
+    ESP.restart();
+}
+
+void runAction(size_t action) {
+    if (action == 0) {
+        // With no bond there is nothing to erase: the restart still happens.
+        ble::resetPairing();
+        restartAfterPairingReset();
+    } else {
+        ancs::clearMessages();
+        onMessagesChanged();
+    }
+}
+
+void closeSettings() {
+    settingsOpen = false;
+    // Back on the Chat screen: what arrived meanwhile is now on display.
+    if (nav.inChat()) {
+        readOpenChat();
+    }
+    screenDirty = true;
+}
+
+void stepSetting(int direction) {
+    const Setting setting = static_cast<Setting>(settingsNav.selected());
+    if (!settings.step(setting, direction)) {
+        return;
+    }
+    settings_store::save(settings, setting);
+    if (setting == Setting::Brightness) {
+        applyBrightness();
+    } else if (setting == Setting::DisplayTimeout) {
+        screenTimer.setTimeout(settings.displayTimeoutMs());
+    }
+    screenDirty = true;
+}
+
+void pollSettingsKey(KeyPos key) {
+    if (isKey(key, kOpenKey)) {
+        if (settingsNav.enter(millis())) {
+            runAction(settingsNav.selected() - kSettingCount);
+        }
+        screenDirty |= settingsNav.onAction();
+        return;
+    }
+    // Any other key only cancels a prompt.
+    if (settingsNav.cancel()) {
+        screenDirty = true;
+        return;
+    }
+    if (isKey(key, kUpKey)) {
+        screenDirty |= settingsNav.up();
+    } else if (isKey(key, kDownKey)) {
+        screenDirty |= settingsNav.down();
+    } else if (isKey(key, kPrevKey) && !settingsNav.onAction()) {
+        stepSetting(-1);
+    } else if (isKey(key, kNextKey) && !settingsNav.onAction()) {
+        stepSetting(1);
+    } else if (isKey(key, kBackKey)) {
+        closeSettings();
+    }
+}
+
 void pollReadingMode(const std::vector<KeyPos>& pressed) {
     if (pairingResetCombo.update(pressed, millis()) && ble::resetPairing()) {
-        if (displayReady) {
-            drawStatus();
-        }
-        logMessage(LogLevel::Info, "SYS", "restarting after pairing reset");
-        Serial.flush();
-        delay(kResetNoticeMs);
-        ESP.restart();
+        restartAfterPairingReset();
     }
     for (const KeyEvent& event : keyTracker.update(pressed)) {
         char text[kKeyTextCapacity];
         formatKeyEvent(text, sizeof(text), event);
         logMessage(LogLevel::Debug, "KEY", "%s", text);
-        if (event.kind != KeyEventKind::Down) {
+        // A key that turns the screen on does nothing else.
+        if (event.kind != KeyEventKind::Down || wakeScreen()) {
             continue;
         }
-        // Fn is ignored: Fn+; and Fn+. are the arrow legends of the same keys.
-        if (nav.inChat()) {
+        // Fn is ignored: Fn+; and Fn+. are the arrow legends of the same keys, Fn+, and Fn+/ likewise.
+        if (settingsOpen) {
+            pollSettingsKey(event.key);
+        } else if (isKey(event.key, kSettingsKey) && (event.modifiers & kModOpt) != 0) {
+            settingsOpen = true;
+            screenDirty = true;
+        } else if (nav.inChat()) {
             if (isKey(event.key, kUpKey)) {
                 screenDirty |= nav.scrollUp();
             } else if (isKey(event.key, kDownKey)) {
@@ -506,7 +699,10 @@ void pollBattery() {
 void pollG0(const std::vector<KeyPos>& pressed) {
     if (M5Cardputer.BtnA.wasPressed()) {
         logMessage(LogLevel::Debug, "BTN", "G0 down");
-        setKeyboardMode(!keyboardMode, pressed);
+        // A press that turns the screen on leaves the mode as it is.
+        if (!wakeScreen()) {
+            setKeyboardMode(!keyboardMode, pressed);
+        }
     }
     if (M5Cardputer.BtnA.wasReleased()) {
         logMessage(LogLevel::Debug, "BTN", "G0 up");
@@ -547,6 +743,10 @@ void setup() {
     if (!displayReady) {
         logMessage(LogLevel::Error, "SYS", "display init failed");
     }
+    settings_store::load(settings);
+    applyBrightness();
+    screenTimer.setTimeout(settings.displayTimeoutMs());
+    screenTimer.activity(millis());
 
     pollBattery();
     ble::begin(static_cast<uint8_t>(batteryLevel < 0 ? 0 : batteryLevel));
@@ -562,6 +762,9 @@ void loop() {
         pollArrivals();
     }
     pollBanner();
+    if (settingsOpen && settingsNav.expire(millis())) {
+        screenDirty = true;
+    }
     pollBattery();
     const std::vector<KeyPos> pressed = readPressedKeys();
     updateKeyboardReady(pressed);
@@ -571,12 +774,18 @@ void loop() {
     } else {
         pollReadingMode(pressed);
     }
-    if (displayReady && statusDirty) {
+    pollScreenTimeout();
+    pollBeeps();
+    if (!canDraw()) {
+        delay(10);
+        return;
+    }
+    if (statusDirty) {
         drawStatus();
     }
-    if (displayReady && screenDirty) {
+    if (screenDirty) {
         drawScreen();
-    } else if (displayReady && contextDirty && keyboardMode) {
+    } else if (contextDirty && keyboardMode) {
         drawContext();
     }
     statusDirty = false;

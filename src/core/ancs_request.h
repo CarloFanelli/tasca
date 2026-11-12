@@ -16,6 +16,7 @@ size_t encodeGetNotificationAttributes(uint8_t* out, uint32_t uid);
 struct AncsEvent {
     enum class Kind { Added, Modified, Removed } kind;
     bool preExisting;  // already on the iPhone when the subscription started
+    uint8_t category;  // CategoryID of the ANCS specification, e.g. 4 Social
     uint32_t uid;
 };
 

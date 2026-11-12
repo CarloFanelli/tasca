@@ -93,6 +93,11 @@ size_t MessageStore::markChatRead(const std::string& chat) {
     return changed;
 }
 
+void MessageStore::clear() {
+    messages_.clear();
+    memoryBytes_ = 0;
+}
+
 void MessageStore::unlinkAll() {
     for (Message& m : messages_) {
         m.linked = false;

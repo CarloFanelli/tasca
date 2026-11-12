@@ -74,6 +74,7 @@ bool decodeAncsEvent(const uint8_t* data, size_t length, AncsEvent* event) {
         default:             return false;
     }
     event->preExisting = (data[1] & kEventFlagPreExisting) != 0;
+    event->category = data[2];
     event->uid = getUint32(data + 4);
     return true;
 }

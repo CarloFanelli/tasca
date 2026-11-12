@@ -42,6 +42,9 @@ constexpr uint32_t kResponseTimeoutMs = 2000;
 
 // Apps whose notifications are kept; every other app is only counted.
 const char* const kAcceptedApps[] = {"net.whatsapp.WhatsApp"};
+// Categories whose attributes are requested: WhatsApp messages come as Social (4), seen on an iPhone.
+// Other categories are only counted, so the import at connection skips most other apps.
+const uint8_t kAcceptedCategories[] = {4};
 
 QueueHandle_t nsQueue = nullptr;
 QueueHandle_t dsQueue = nullptr;
@@ -66,6 +69,7 @@ Request inFlight{};
 uint32_t inFlightSinceMs = 0;
 AncsResponseDecoder response;
 uint32_t otherAppNotifications = 0;
+uint32_t otherCategoryNotifications = 0;
 ReconnectImport import;
 
 // Runs on the BLE host task: only copies the packet for loop().
@@ -85,6 +89,15 @@ void onNotificationSource(NimBLERemoteCharacteristic*, uint8_t* data, size_t len
 
 void onDataSource(NimBLERemoteCharacteristic*, uint8_t* data, size_t length, bool) {
     enqueue<sizeof(DsPacket::data)>(dsQueue, droppedDs, data, length);
+}
+
+bool isAcceptedCategory(uint8_t category) {
+    for (uint8_t accepted : kAcceptedCategories) {
+        if (category == accepted) {
+            return true;
+        }
+    }
+    return false;
 }
 
 bool isAccepted(const std::string& app) {
@@ -195,6 +208,10 @@ bool handleEvent(const NsPacket& packet) {
     if (event.preExisting) {
         import.onPreExistingEvent(millis());
     }
+    if (!isAcceptedCategory(event.category)) {
+        otherCategoryNotifications++;
+        return false;
+    }
     if (pendingRequests.size() >= kMaxPendingRequests) {
         droppedRequests++;
         import.onFailure();
@@ -253,7 +270,8 @@ bool finishImport() {
         return false;
     }
     const size_t removed = store.removeUnlinked();
-    logMessage(LogLevel::Info, "MSG", "import done: %u gone from the iPhone removed", static_cast<unsigned>(removed));
+    logMessage(LogLevel::Info, "MSG", "import done: %u gone from the iPhone removed, %u of other categories skipped so far",
+               static_cast<unsigned>(removed), static_cast<unsigned>(otherCategoryNotifications));
     if (removed == 0) {
         return false;
     }
@@ -350,6 +368,13 @@ State state() {
 
 const MessageStore& messages() {
     return store;
+}
+
+void clearMessages() {
+    const size_t cleared = store.size();
+    store.clear();
+    logMessage(LogLevel::Info, "MSG", "%u messages cleared", static_cast<unsigned>(cleared));
+    logCounts();
 }
 
 bool markChatRead(const std::string& chat) {

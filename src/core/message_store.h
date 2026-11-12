@@ -48,6 +48,9 @@ public:
     // Marks every Message of chat read; returns how many were unread.
     size_t markChatRead(const std::string& chat);
 
+    // Removes every Message.
+    void clear();
+
     // Forgets every UID: called when the connection ends.
     void unlinkAll();
 
