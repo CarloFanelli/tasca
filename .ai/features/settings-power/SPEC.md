@@ -2,7 +2,7 @@
 feature: settings-power
 version: 1.1
 status: approved
-completed: false
+completed: true
 base: 891ab744da34a768179d6a417aeaf23186330185
 ---
 

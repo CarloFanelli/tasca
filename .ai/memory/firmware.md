@@ -10,6 +10,8 @@ Cardputer firmware build, toolchain, hardware facts and on-device behavior.
 - **Fn+Del pairing reset restarts the board**: after erasing the bond the Cardputer shows "pairing reset" for 1.5 s and restarts. Why: without a restart iOS did not list "Tasca" again after "Forget This Device", although it kept advertising.
 - **Failed encryption shows "pairing failed"**, not "pairing invalid — Fn+Del". Why: after "Forget This Device" the iPhone pairs again on its own, so Fn+Del is not the fix the message would suggest.
 
+- **Slow link timings while the screen is off**: 120–150 ms, latency 4, 6 s timeout; with the screen on, a fixed 15–30 ms window, latency 0, 2 s. Why: power saving within Apple's accessory rules, which require the requested maximum interval to exceed the minimum by at least 15 ms, so the exact timings iOS picked cannot be requested back.
+
 ## Gotchas
 
 - **Display rotation**: with M5GFX 0.3.0 the Cardputer panel is already 240x135 landscape at rotation 0; the official M5Stack examples call `setRotation(1)`, which turns the text 90°. Don't copy that call.
