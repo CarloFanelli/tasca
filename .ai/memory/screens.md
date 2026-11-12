@@ -16,6 +16,10 @@ _Avoid_: "conversation view" (it is not a conversation: only received notificati
 The Reading mode screen opened with Opt+s: brightness, sound, display timeout and wake on new message, kept in NVS, then the actions "Reset pairing" and "Clear messages", each run on a second Enter.
 _Avoid_: "menu", "preferences".
 
+### Call screen
+The full-screen view of an iPhone call that is ringing, shown over any screen in either mode: caller's name, Enter answers, ` declines. While it is open no key reaches the iPhone.
+_Avoid_: "call popup", "Banner" (a Banner is the 3-second box for a Message in Keyboard mode).
+
 ### Banner
 A 3-second box over the Keyboard mode context area showing a Message that arrived live while typing.
 _Avoid_: "popup", "toast".

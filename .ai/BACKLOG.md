@@ -29,6 +29,15 @@
 - **What**: Measure the connected-standby autonomy with the screen off and the slow link timings (from full charge to shutdown, battery and uptime logged once a minute) and state it in the README, against the 12 h target of the project spec.
 - **From**: settings-power (review, 2026-11-12)
 
-### B-7 · open
+### B-7 · picked-up
 - **What**: Incoming calls on the Cardputer: show the caller from the ANCS incoming-call notification and answer or decline with a key through ANCS notification actions; the audio stays on the iPhone or earphones.
 - **From**: siri-reply (interview, 2026-11-12)
+- **Picked up by**: incoming-calls (2026-11-13)
+
+### B-8 · open
+- **What**: Show missed-call notifications in the Inbox next to the Chats, removed when cleared on the iPhone.
+- **From**: incoming-calls (interview, 2026-11-13)
+
+### B-9 · open
+- **What**: Find out whether the Cardputer can hang up an answered call (ANCS sends nothing once a call is answered; check HID telephony or consumer usages on iOS).
+- **From**: incoming-calls (interview, 2026-11-13)

@@ -11,4 +11,4 @@ Features whose spec is written and approved, parked while another feature is cur
 
 ## Features
 
-None yet.
+- `incoming-calls`: shows an incoming call on the Call screen; Enter answers, ` declines, beeps while ringing. Where it stopped: `spec approved`.
