@@ -1,8 +1,9 @@
 # Backlog
 
-### B-1 · open
+### B-1 · done
 - **What**: GitHub CI pipeline that builds the firmware and runs the host tests on every push. Only meaningful once a remote exists.
 - **From**: firmware-skeleton (interview, 2026-11-11)
+- **Done** (2026-11-13): `.github/workflows/ci.yml` runs the host tests and the firmware build on every push; green on the private GitHub repository, no feature of its own.
 
 ### B-2 · picked-up
 - **What**: Spec for milestone M1 (ANCS): advertising, pairing with the iPhone and serial dump of WhatsApp notifications, with the GATT table already complete with HID.
