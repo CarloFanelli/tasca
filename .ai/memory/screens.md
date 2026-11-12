@@ -1,0 +1,29 @@
+# Screens
+
+What the Cardputer shows: status bar, Inbox, Chat screen, and the Keyboard mode context and Banner.
+
+## Terms
+
+### Inbox
+The Reading mode list of **Chats**, newest first, two lines each (name with unread count, then a grey preview). Enter opens the **Chat screen** of the selected Chat.
+_Avoid_: "chat list", "home" (one name for the list screen).
+
+### Chat screen
+The Reading mode screen of one Chat: its Messages oldest to newest, each with time (and sender in groups). Opening it marks its Messages read on the Cardputer only.
+_Avoid_: "conversation view" (it is not a conversation: only received notifications appear).
+
+### Banner
+A 3-second box over the Keyboard mode context area showing a Message that arrived live while typing.
+_Avoid_: "popup", "toast".
+
+## Decisions
+
+- **On-screen text stays in English**: status bar, labels and placeholders. Why: chosen by the user.
+- **Emoji and non-Latin-1 characters show as □**: one □ per emoji sequence (joined, flagged, skin-toned). Why: the efont family has no emoji, and an emoji font does not fit the flash budget.
+- **The Chat screen opens at the start of the newest Message**: earlier lines above it when it is short; a screen at its end follows a new Message from its start. Why: on hardware, opening at the last line forced the user to scroll up to read a long Message.
+- **Banner only for Messages arriving live**: not for notifications resent at reconnection, nor for updated Messages. Why: the Banner announces a reply worth reading now, not old notifications.
+
+## Gotchas
+
+- **Only notifications reach the Cardputer**: no chat history, no Messages the user sent, no muted chats, and Enter cannot reply. Replying means opening the chat on the iPhone and typing in Keyboard mode. A full WhatsApp view would need the optional WiFi bridge of phase 2.
+- **No full-screen sprite**: a 240×135 16-bit buffer takes about 64 KB, more than the Message store budget with no PSRAM; each screen band clears and redraws its own rectangle on a dirty flag.
