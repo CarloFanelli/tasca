@@ -2,4 +2,4 @@
 
 01-build-and-flash: DONE
 02-serial-log-and-tests: DONE
-03-key-and-button-events: TODO
+03-key-and-button-events: DONE

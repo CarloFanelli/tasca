@@ -1,3 +1,5 @@
+@AGENTS.md
+
 # Tasca
 
 Firmware for the M5Stack Cardputer v1.1 (ESP32-S3) that shows WhatsApp notifications from a paired iPhone over BLE (ANCS) and acts as a BLE HID keyboard to reply. C++, PlatformIO, Arduino framework.
@@ -23,11 +25,23 @@ PlatformIO CLI is installed with Homebrew (`brew install platformio`). Host test
 
 ## Serial log
 
-Every line is `[L][TAG] message`, with L one of D, I, W, E and TAG a module name of at most 6 characters (`SYS`, `KEY`, `BTN`, later `BLE`, `ANCS`, `HID`). Log through `logMessage()` in `src/log.h`, never with `Serial.print` directly. Messages longer than 256 characters are truncated with `...`.
+Every line is `[L][TAG] message`, with L one of D, I, W, E and TAG a module name of at most 6 characters (`SYS`, `KEY`, `BTN`, `BLE`, `ANCS`, `HID`, `MSG`). Log through `logMessage()` in `src/log.h`, never with `Serial.print` directly. Messages longer than 256 characters are truncated with `...`.
 
 The minimum level is set at build time with `-DTASCA_LOG_MIN_LEVEL=` (0 Debug, the default, 1 Info, 2 Warn, 3 Error), e.g. `PLATFORMIO_BUILD_FLAGS="-DTASCA_LOG_MIN_LEVEL=1" pio run -e cardputer`.
 
 At startup the firmware waits up to 1.5 s for a serial monitor, then logs one boot report: `[I][SYS] boot version=… psram=… heap=… flash=…` (`psram=none` on the Cardputer v1.1). A monitor opened later misses it: reset the board with the monitor open to see it again.
+
+## BLE and pairing
+
+The Cardputer advertises as "Tasca" (keyboard appearance, HID service, ANCS solicitation) and bonds with the iPhone using Just Works: no PIN. Phases are logged tagged `BLE` and shown on the status line under the version.
+
+- The GATT table (HID, Battery, Device Information) must not change once a device has bonded: iOS caches it, and a change requires "Forget This Device" and a new pairing.
+- Only one iPhone can be bonded; a second device is refused.
+- Holding Fn+Del for 3 s erases the bond and restarts the Cardputer (without the restart iOS does not list "Tasca" again after "Forget This Device"). Then forget "Tasca" on the iPhone and pair again.
+- If the Cardputer's bonds are erased but the iPhone still remembers "Tasca", pairing fails: on the iPhone use Settings > Bluetooth > (i) next to "Tasca" > "Forget This Device", then pair again.
+- Notifications reach the Cardputer only with "Share System Notifications" on: Settings > Bluetooth > (i) next to "Tasca". With it off iOS accepts the ANCS subscription but sends nothing; after turning it on, reconnect (e.g. restart the Cardputer).
+- Keyboard mode (G0) sends keys by position as a U.S. keyboard, so the iPhone must use the hardware keyboard layout "Automatic" (or "U.S."): Settings > General > Keyboard > Hardware Keyboard, shown only while "Tasca" is connected. Keys then type their keycap legends, Fn+a/e/i/o/u give à è ì ò ù and Ctrl+e gives é. With another layout (e.g. "Italian") keys type that layout's characters and the accents differ.
+- iOS remembers the name a device had the first time it saw it: a board that ran other firmware may show up under its old name (e.g. "ESP32") until the first connection.
 
 ## Serial port
 

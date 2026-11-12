@@ -2,6 +2,8 @@
 
 #include <string.h>
 
+#include "core/utf8.h"
+
 namespace {
 
 char levelLetter(LogLevel level) {
@@ -12,10 +14,6 @@ char levelLetter(LogLevel level) {
         case LogLevel::Error: return 'E';
     }
     return '?';
-}
-
-bool isUtf8Continuation(char c) {
-    return (static_cast<unsigned char>(c) & 0xC0) == 0x80;
 }
 
 class LineWriter {

@@ -43,3 +43,8 @@ M2 sends exactly these press and release events to the iPhone, and M4 uses G0 to
 - G0 contact bounce → one physical press yields exactly one press and one release line (REQ-13 from the spec edge-case table)
 - G0 held during power-on → board enters download mode, firmware doesn't run; documented in CLAUDE.md (REQ-13 from the spec edge-case table)
 - Combination with multiple modifiers (e.g. Ctrl+Shift+a) → converted text lists all modifiers in a fixed order (REQ-15 from the spec edge-case table)
+
+## Notes from implementation
+
+- **Known limitation**: code and host tests are complete (22 host tests green) and the firmware is flashed, but hardware verification is pending, deferred by the user to the next session: key `down`/`up` lines, modifiers alone, Fn and multi-modifier combos, no auto-repeat on a held key, G0 press/release lines, and the last-key label under "Hello". Test sequence: a; Fn+;; Ctrl+Shift+a; Enter; hold a 3 s; G0 twice. /dev, 2026-11-11.
+- **Known limitation resolved**: hardware verification passed on 2026-11-12 — down/up lines for a, Fn+;, Ctrl+Shift+a (mods=Ctrl+Shift), Enter by name, held key with no repeat, modifiers alone, two clean G0 press/release pairs; the user saw "Ctrl+Shift+a" under "Hello". /dev, 2026-11-12.

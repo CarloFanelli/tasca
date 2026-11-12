@@ -1,0 +1,6 @@
+# Task Progress - hid-keyboard
+
+01-keyboard-mode: DONE
+02-onscreen-keyboard-toggle: DONE
+03-italian-echo-line: DONE
+04-coexistence-soak: DONE

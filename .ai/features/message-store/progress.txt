@@ -1,0 +1,6 @@
+# Task Progress - message-store
+
+01-attribute-decoding: DONE
+02-messages-and-chats: DONE
+03-updates-and-duplicates: DONE
+04-full-connection-import: DONE

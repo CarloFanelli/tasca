@@ -1,0 +1,6 @@
+# Task Progress - ancs-capture
+
+01-ble-pairing: DONE
+02-bond-reset: DONE
+03-ancs-subscription: DONE
+04-attribute-requests: DONE

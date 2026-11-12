@@ -2,7 +2,7 @@
 feature: firmware-skeleton
 version: 1.0
 status: approved
-completed: false
+completed: true
 ---
 
 # Firmware Skeleton (M0)
