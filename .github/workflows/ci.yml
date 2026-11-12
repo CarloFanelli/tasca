@@ -1,9 +1,10 @@
-# Builds the firmware and runs the host tests on every push and pull request.
+# Builds the firmware and runs the host tests when commits land on main (a merge or a merged pull request).
+# Work happens on dev; pushes there and open pull requests do not run it.
 name: CI
 
 on:
   push:
-  pull_request:
+    branches: [main]
 
 jobs:
   build-and-test:

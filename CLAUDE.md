@@ -17,7 +17,7 @@ All commands run from the repository root. The first build needs network access:
 | Flash, then monitor | `pio run -e cardputer -t upload -t monitor` |
 | Clean | `pio run -e cardputer -t clean` |
 
-GitHub Actions (`.github/workflows/ci.yml`) runs the host tests and the firmware build on every push and pull request, with the same PlatformIO version.
+GitHub Actions (`.github/workflows/ci.yml`) runs the host tests and the firmware build only when commits land on `main` (a merge or a merged pull request from `dev`; pushes to `dev` and open pull requests do not run it), with the same PlatformIO version.
 
 PlatformIO CLI is installed with Homebrew (`brew install platformio`). Host tests need a working Apple C++ compiler (Command Line Tools, `xcode-select --install`).
 
