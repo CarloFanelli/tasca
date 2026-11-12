@@ -13,3 +13,8 @@
 - **What**: Fetch the attributes (sender, text) of every PreExisting notification at connection: today only the first 64 attribute requests are queued and the rest of the ~110-notification flood are dropped. Needed once notifications are shown on screen.
 - **From**: hid-keyboard (dev task 04, 2026-11-12)
 - **Picked up by**: message-store (2026-11-12)
+
+### B-4 · picked-up
+- **What**: Request attributes only for notifications in the Social category (if WhatsApp uses it): the ~120 notifications of other apps fetched one at a time at every connection delay a new WhatsApp message by up to ~11 s.
+- **From**: reading-screens (hardware test, 2026-11-12)
+- **Picked up by**: settings-power (2026-11-12)
