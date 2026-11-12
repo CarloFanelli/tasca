@@ -19,10 +19,15 @@
 - **From**: reading-screens (hardware test, 2026-11-12)
 - **Picked up by**: settings-power (2026-11-12)
 
-### B-5 · open
+### B-5 · picked-up
 - **What**: Spike on replying through Siri without taking the iPhone out: send the consumer Voice Command usage from the Cardputer and dictate "send a WhatsApp to …" through earphones. To verify: whether Siri answers with the iPhone locked, and whether WhatsApp accepts the dictated message.
 - **From**: settings-power (interview, 2026-11-12)
+- **Picked up by**: siri-reply (2026-11-12)
 
 ### B-6 · open
 - **What**: Measure the connected-standby autonomy with the screen off and the slow link timings (from full charge to shutdown, battery and uptime logged once a minute) and state it in the README, against the 12 h target of the project spec.
 - **From**: settings-power (review, 2026-11-12)
+
+### B-7 · open
+- **What**: Incoming calls on the Cardputer: show the caller from the ANCS incoming-call notification and answer or decline with a key through ANCS notification actions; the audio stays on the iPhone or earphones.
+- **From**: siri-reply (interview, 2026-11-12)
