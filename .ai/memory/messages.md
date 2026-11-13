@@ -12,12 +12,17 @@ _Avoid_: "notification" for the stored item (a notification is what the iPhone s
 The conversation a **Message** belongs to: the notification subtitle (group name) when present, otherwise the title (contact name). The sender is always the title.
 _Avoid_: "conversation", "thread" (one name for the grouping key).
 
+### Clear a Chat
+Del twice in Reading mode: asks the iPhone to remove every notification of that **Chat**; its **Messages** leave the Cardputer when the iPhone confirms. Settings "Clear messages" is different: it empties the Cardputer only.
+_Avoid_: "delete", "dismiss" (one verb for the iPhone-side clearing); "clear" for the Settings action without saying "on the Cardputer only".
+
 ## Decisions
 
 - **Store limit is 200 Messages or 56 KB of memory**: the 56 KB covers each Message's own struct as well as its strings; the oldest Messages are dropped first. Why: there is no PSRAM, 200 messages of up to 512 bytes could take about 130 KB, and the user chose a predictable budget over always keeping 200.
 - **The Cardputer mirrors the iPhone's notifications**: a Message removed on the iPhone (read or cleared) is deleted, and after the reconnection import Messages not resent are deleted too; a Message read on the Cardputer stays, as read, until then. Why: the user's replies never reach the Cardputer, so keeping read Messages is no real chat history.
 - **Attributes requested only for the Social category**: on the user's iPhone every WhatsApp notification arrives as Social (CategoryID 4); other categories are counted and skipped. Why: it halved the import at reconnection (about 11 s to 5.6 s); the user accepted 5.6 s, since other messaging apps are Social too and the filter cannot skip them.
 - **Message content on serial only at Debug**: Chat, sender and text are logged at `D`; above Debug only counts. Why: the log is needed to verify decoding, and a higher-level build keeps content off serial.
+- **Clearing a Chat waits for the iPhone**: Messages leave the Cardputer only when the iPhone reports their notification removed; refused or unlinked ones stay with "Not cleared on the iPhone". Why: chosen by the user so that Cardputer and iPhone never disagree.
 
 ## Gotchas
 
@@ -25,3 +30,4 @@ _Avoid_: "conversation", "thread" (one name for the grouping key).
 - **Test data never comes from captures**: serial captures hold the user's real messages. Fixtures are built by hand with invented names, as in `test/test_ancs_request`.
 - **A wrong category filter empties the store**: if WhatsApp notifications arrived in a category outside the filter, none would be requested and the reconnection cleanup would delete every stored Message as gone from the iPhone. Confirm the category on hardware before changing the filter.
 - **A message read while disconnected sends no removal**: iOS does not resend a notification that is already gone. It is detected only by absence once the reconnection import ends, and only when every answer of that import arrived.
+- **WhatsApp accepts the ANCS negative action as "Clear"**: checked on the user's iPhone; the notification leaves the lock screen and Notification Center, and a Removed event follows.

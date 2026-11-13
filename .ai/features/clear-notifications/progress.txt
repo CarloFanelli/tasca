@@ -1,0 +1,5 @@
+# Task Progress - clear-notifications
+
+01-clear-chat: DONE
+02-not-cleared-notice: DONE
+03-readme-iphone-check: DONE

@@ -52,10 +52,11 @@ G0 (the button on the side) switches between Reading mode and Keyboard mode. The
 | Enter | Open the selected Chat |
 | `` ` `` | Back to the Inbox, or out of Settings |
 | Opt+s | Open Settings |
+| Del, twice | Clear the selected or open Chat on the iPhone too: its notifications are removed there, then here. Messages the iPhone keeps show "Not cleared on the iPhone" |
 | Fn+Enter | Start Siri (see below) |
 | Fn+Del, held 3 s | Reset pairing and restart |
 
-**Settings** — `;` and `.` select a row, `,` and `/` change its value: brightness, sound, display timeout (15 s to 5 min, or Never) and wake on new message. "Reset pairing" and "Clear messages" run on Enter, then Enter again to confirm. Settings are kept across restarts.
+**Settings** — `;` and `.` select a row, `,` and `/` change its value: brightness, sound, display timeout (15 s to 5 min, or Never) and wake on new message. "Reset pairing" and "Clear messages" run on Enter, then Enter again to confirm. "Clear messages" empties the Cardputer only: the notifications stay on the iPhone. Settings are kept across restarts.
 
 **Keyboard mode** — every key goes to the iPhone, typing its keycap legend. Fn+a/e/i/o/u give à è ì ò ù, Ctrl+e gives é. To reply, open the chat on the iPhone, then type on the Cardputer.
 
