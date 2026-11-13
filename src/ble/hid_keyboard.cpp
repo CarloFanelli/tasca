@@ -71,10 +71,8 @@ bool setConsumerUsage(uint16_t usage) {
 }
 
 bool sendConsumerUsage(uint16_t usage) {
-    const uint8_t press[] = {static_cast<uint8_t>(usage & 0xFF), static_cast<uint8_t>(usage >> 8)};
-    const uint8_t release[] = {0, 0};
-    const bool pressed = consumerInput->notify(press, sizeof(press));
-    return consumerInput->notify(release, sizeof(release)) && pressed;
+    const bool pressed = setConsumerUsage(usage);
+    return setConsumerUsage(0) && pressed;
 }
 
 }  // namespace ble
