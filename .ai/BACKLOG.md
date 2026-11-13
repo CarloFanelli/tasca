@@ -45,3 +45,8 @@
 ### B-10 · open
 - **What**: Test a WhatsApp message dictated to Siri started from the Cardputer (Fn+Enter), once with earphones and once with only the iPhone's microphone (iPhone in a pocket), and record in the README whether it is sent.
 - **From**: siri-reply (dev task 02, 2026-11-13)
+
+### B-11 · picked-up
+- **What**: Startup screen until the iPhone is connected: "Tasca" in large type and a smaller line under it. With a bonded iPhone it reads "Connecting…" while the Cardputer reconnects; with none it stays on "Connect your iPhone" until one pairs.
+- **From**: user request (2026-11-13)
+- **Picked up by**: connection-screen (2026-11-13)
