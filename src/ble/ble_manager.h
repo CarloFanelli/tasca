@@ -23,6 +23,8 @@ bool resetPairing();
 void requestTimings(bool slow);
 
 Phase phase();
+// An iPhone is bonded. Call from loop() only.
+bool bonded();
 const char* phaseName(Phase phase);
 
 }  // namespace ble

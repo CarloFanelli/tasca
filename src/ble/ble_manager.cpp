@@ -245,6 +245,10 @@ Phase phase() {
     return currentPhase;
 }
 
+bool bonded() {
+    return NimBLEDevice::getNumBonds() > 0;
+}
+
 const char* phaseName(Phase phase) {
     switch (phase) {
         case Phase::Advertising:   return "advertising";
