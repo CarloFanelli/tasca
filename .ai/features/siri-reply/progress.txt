@@ -1,4 +1,4 @@
 # Task Progress - siri-reply
 
 01-siri-key: DONE
-02-iphone-verification: IN_PROGRESS
+02-iphone-verification: DONE

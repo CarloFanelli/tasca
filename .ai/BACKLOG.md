@@ -41,3 +41,7 @@
 ### B-9 · open
 - **What**: Find out whether the Cardputer can hang up an answered call (ANCS sends nothing once a call is answered; check HID telephony or consumer usages on iOS).
 - **From**: incoming-calls (interview, 2026-11-13)
+
+### B-10 · open
+- **What**: Test a WhatsApp message dictated to Siri started from the Cardputer (Fn+Enter), once with earphones and once with only the iPhone's microphone (iPhone in a pocket), and record in the README whether it is sent.
+- **From**: siri-reply (dev task 02, 2026-11-13)

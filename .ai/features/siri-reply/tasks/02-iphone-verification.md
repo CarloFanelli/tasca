@@ -33,5 +33,8 @@ The spike itself: a hardware test with the user, unlocked and locked, with and w
 ## Notes from implementation
 
 - **Siri command**: a tap of the consumer Voice Command usage only wakes the iPhone; holding it down while Enter is held starts Siri, unlocked and locked (tested 2026-11-12).
-- **Known limitation**: with notifications on the iPhone's lock screen, the first Fn+Enter only lights the screen; a second Fn+Enter held starts Siri. A tap before the hold, sent automatically, is the planned fix, not yet built.
-- **Known limitation**: sending a WhatsApp message through Siri asks to unlock the iPhone; the passcode typed from the Cardputer after Siri's request is still to be verified in Keyboard mode.
+- **Wake tap**: with notifications on the iPhone's lock screen, the first key only lit the screen. Fn+Enter now sends a Shift tap, then holds the Voice Command 400 ms later until Enter is released (at least 800 ms). Siri starts at the first press locked with notifications, locked without, and unlocked, and no character is typed (tested 2026-11-13).
+- **Unlock from the Cardputer**: sending a WhatsApp message through Siri asks to unlock the iPhone; switching to Keyboard mode, typing the passcode and Enter on the Cardputer unlocks it and the message is sent (tested 2026-11-13).
+- **Closing Siri**: ` after Fn+Enter sends Esc and closes Siri (tested 2026-11-13).
+- **Known limitation**: if Siri has already closed on its own, ` within 60 s still sends Esc: in WhatsApp it goes back to the chat list. Accepted by the user.
+- **REQ-5 — divergence**: a WhatsApp message dictated with earphones and with the iPhone's microphone only was not tested; moved to backlog B-10 by the user (2026-11-13).

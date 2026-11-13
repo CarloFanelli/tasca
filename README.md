@@ -42,6 +42,7 @@ G0 (the button on the side) switches between Reading mode and Keyboard mode. The
 | Enter | Open the selected Chat |
 | `` ` `` | Back to the Inbox, or out of Settings |
 | Opt+s | Open Settings |
+| Fn+Enter | Start Siri (see below) |
 | Fn+Del, held 3 s | Reset pairing and restart |
 
 **Settings** — `;` and `.` select a row, `,` and `/` change its value: brightness, sound, display timeout (15 s to 5 min, or Never) and wake on new message. "Reset pairing" and "Clear messages" run on Enter, then Enter again to confirm. Settings are kept across restarts.
@@ -49,3 +50,12 @@ G0 (the button on the side) switches between Reading mode and Keyboard mode. The
 **Keyboard mode** — every key goes to the iPhone, typing its keycap legend. Fn+a/e/i/o/u give à è ì ò ù, Ctrl+e gives é. To reply, open the chat on the iPhone, then type on the Cardputer.
 
 The screen turns off after the display timeout; a key or G0 turns it back on. In Reading mode that key does nothing else; in Keyboard mode it is also sent to the iPhone. Each Message arriving live beeps when sound is on, and turns the screen on when wake on new message is on.
+
+## Siri
+
+Fn+Enter starts Siri on the iPhone, from either mode, locked or unlocked, without changing the Cardputer's screen. Hold it while you start speaking, as a headset button. You speak to Siri through the iPhone's or the earphones' microphone: the Cardputer has no Bluetooth audio and cannot act as a microphone.
+
+- `` ` `` right after Fn+Enter closes Siri (it sends Esc; if Siri already closed, Esc reaches the app, e.g. WhatsApp goes back to the chat list).
+- Replies by voice work: "Reply to Mario on WhatsApp …". On a locked iPhone, Siri asks to unlock before sending: press G0 for Keyboard mode, type the passcode on the Cardputer, Enter.
+- iPhone settings: Settings > Siri: "Press Side Button for Siri" or "Listen for" on, and "Allow Siri When Locked" on. Keep "Type to Siri" off: it replaces voice Siri.
+

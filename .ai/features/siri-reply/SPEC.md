@@ -2,7 +2,7 @@
 feature: siri-reply
 version: 1.2
 status: approved
-completed: false
+completed: true
 base: 74b36171364e7911f37e7af1f4a826ec2532dca0
 ---
 
