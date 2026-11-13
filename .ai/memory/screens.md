@@ -32,6 +32,18 @@ _Avoid_: "startup screen", "splash" (it also returns after a disconnection).
 A 3-second box over the Keyboard mode context area showing a Message that arrived live while typing.
 _Avoid_: "popup", "toast".
 
+### Beep
+The built-in sound: one 2000 Hz, 80 ms beep per live Message, a double beep every 2 s for a ringing call. The default Notification sound and Ringtone, and the fallback for any sound error.
+_Avoid_: "default ringtone", "tone" (one name for the built-in sound).
+
+### Notification sound
+The sound played for live Messages: Beep, or a WAV file from `Tasca/Notifications` on the microSD card, chosen in the Settings screen.
+_Avoid_: "message tone", "alert".
+
+### Ringtone
+The sound looped while a call rings: Beep, or a WAV file from `Tasca/Ringtones` on the microSD card, chosen in the Settings screen.
+_Avoid_: "ring sound", "suoneria" in artifacts.
+
 ## Decisions
 
 - **On-screen text stays in English**: status bar, labels and placeholders. Why: chosen by the user.
