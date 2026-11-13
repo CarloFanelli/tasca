@@ -11,6 +11,7 @@
 
 #include "core/ancs_request.h"
 #include "core/chat_key.h"
+#include "core/incoming_call.h"
 #include "core/reconnect_import.h"
 #include "log.h"
 
@@ -42,9 +43,11 @@ constexpr uint32_t kResponseTimeoutMs = 2000;
 
 // Apps whose notifications are kept; every other app is only counted.
 const char* const kAcceptedApps[] = {"net.whatsapp.WhatsApp"};
-// Categories whose attributes are requested: WhatsApp messages come as Social (4), seen on an iPhone.
-// Other categories are only counted, so the import at connection skips most other apps.
-const uint8_t kAcceptedCategories[] = {4};
+// Categories whose attributes are requested: WhatsApp messages come as Social (4), seen on an iPhone,
+// and calls as IncomingCall (1), from any app. Other categories (missed calls included) are only
+// counted, so the import at connection skips most other apps.
+constexpr uint8_t kCategoryIncomingCall = 1;
+const uint8_t kAcceptedCategories[] = {4, kCategoryIncomingCall};
 
 QueueHandle_t nsQueue = nullptr;
 QueueHandle_t dsQueue = nullptr;
@@ -55,14 +58,21 @@ uint16_t pendingSetup = kNoConnection;
 uint16_t activeConnection = kNoConnection;
 State currentState = State::Idle;
 MessageStore store;
+CallTracker calls;
 
 struct Request {
     uint32_t uid;
     bool preExisting;
+    bool call;
 };
 
 // Attribute requests waiting in arrival order, at most one in flight.
 NimBLERemoteCharacteristic* controlPoint = nullptr;
+// UIDs to clear on the iPhone, one negative action each, in any order.
+std::vector<uint32_t> pendingClears;
+// Messages of the clearing that stay: refused by the iPhone or not linked.
+size_t notClearedCount = 0;
+bool notClearedReady = false;
 std::deque<Request> pendingRequests;
 uint32_t droppedRequests = 0;
 Request inFlight{};
@@ -114,8 +124,18 @@ void logCounts() {
                static_cast<unsigned>(store.unread()));
 }
 
-// Returns true when the stored Messages changed.
+// The attributes of a request that will get no answer: a call shows without its title.
+// Returns true when a ringing call changed.
+bool requestFailed(const Request& request) {
+    return request.call && calls.titleFailed(request.uid);
+}
+
+// Returns true when the stored Messages or the ringing calls changed.
 bool handleAttributes(const AncsAttributes& attributes) {
+    // A call is never stored, and its caller never logged.
+    if (inFlight.call) {
+        return calls.setTitle(inFlight.uid, attributes.title);
+    }
     if (!isAccepted(attributes.app)) {
         otherAppNotifications++;
         logMessage(LogLevel::Debug, "ANCS", "notification from another app (%u so far)",
@@ -189,7 +209,7 @@ bool setUp(uint16_t connHandle) {
     return setState(State::Active);
 }
 
-// Returns true when the stored Messages changed.
+// Returns true when the stored Messages or the ringing calls changed.
 bool handleEvent(const NsPacket& packet) {
     AncsEvent event;
     // Packets of a connection already gone carry UIDs the next connection reuses for other notifications.
@@ -198,6 +218,10 @@ bool handleEvent(const NsPacket& packet) {
     }
     // Gone from the iPhone (read or cleared there): gone from the Cardputer too.
     if (event.kind == AncsEvent::Kind::Removed) {
+        if (calls.end(event.uid)) {
+            logMessage(LogLevel::Info, "ANCS", "call ended: uid=%u", static_cast<unsigned>(event.uid));
+            return true;
+        }
         if (!store.remove(event.uid)) {
             return false;
         }
@@ -212,22 +236,57 @@ bool handleEvent(const NsPacket& packet) {
         otherCategoryNotifications++;
         return false;
     }
+    if (event.category == kCategoryIncomingCall) {
+        const bool added = !calls.isCall(event.uid);
+        calls.ring(event.uid, event.positiveAction, event.negativeAction);
+        if (!added) {
+            return true;
+        }
+        logMessage(LogLevel::Info, "ANCS", "incoming call: uid=%u", static_cast<unsigned>(event.uid));
+        // Ahead of the import's requests: the caller's name is awaited on screen.
+        pendingRequests.push_front({event.uid, event.preExisting, true});
+        return true;
+    }
     if (pendingRequests.size() >= kMaxPendingRequests) {
         droppedRequests++;
         import.onFailure();
         return false;
     }
-    pendingRequests.push_back({event.uid, event.preExisting});
+    pendingRequests.push_back({event.uid, event.preExisting, false});
     return false;
 }
 
 // Sends the next request when none is in flight. Blocking GATT write: loop() only.
-void sendNextRequest() {
+// One negative action per call, never while an attribute response is being received.
+void sendNextClear() {
+    if (response.active() || controlPoint == nullptr || pendingClears.empty()) {
+        return;
+    }
+    const uint32_t uid = pendingClears.back();
+    pendingClears.pop_back();
+    uint8_t command[kAncsActionSize];
+    const size_t size = encodePerformNotificationAction(command, uid, false);
+    if (controlPoint->writeValue(command, size, true)) {
+        logMessage(LogLevel::Debug, "ANCS", "clear sent: uid=%u", static_cast<unsigned>(uid));
+    } else {
+        logMessage(LogLevel::Warn, "ANCS", "clear of uid=%u refused (error 0x%x)", static_cast<unsigned>(uid),
+                   controlPoint->getClient()->getLastError());
+        notClearedCount++;
+    }
+    if (pendingClears.empty()) {
+        notClearedReady = notClearedCount > 0;
+    }
+}
+
+// Returns true when a ringing call changed.
+bool sendNextRequest() {
+    bool changed = false;
     if (response.active() && millis() - inFlightSinceMs >= kResponseTimeoutMs) {
         logMessage(LogLevel::Warn, "ANCS", "no response for uid=%u within %u ms", static_cast<unsigned>(inFlight.uid),
                    static_cast<unsigned>(kResponseTimeoutMs));
         response.clear();
         import.onFailure();
+        changed |= requestFailed(inFlight);
     }
     while (!response.active() && controlPoint != nullptr && !pendingRequests.empty()) {
         const Request next = pendingRequests.front();
@@ -239,12 +298,14 @@ void sendNextRequest() {
             // An ANCS error (e.g. 0xA2, notification already gone) arrives as a failed write, with no Data Source answer.
             logMessage(LogLevel::Warn, "ANCS", "request for uid=%u refused (error 0x%x)", static_cast<unsigned>(uid),
                        controlPoint->getClient()->getLastError());
+            changed |= requestFailed(next);
             continue;
         }
         inFlight = next;
         inFlightSinceMs = millis();
         response.start(uid);
     }
+    return changed;
 }
 
 void logDropped(const char* channel, std::atomic<uint32_t>& dropped) {
@@ -304,8 +365,14 @@ void onDisconnected() {
         logMessage(LogLevel::Info, "ANCS", "disconnected: %u attribute requests dropped", static_cast<unsigned>(dropped));
     }
     pendingRequests.clear();
+    // UIDs restart at the next connection: a clear left over would hit another notification.
+    if (!pendingClears.empty()) {
+        logMessage(LogLevel::Info, "ANCS", "disconnected: %u clears dropped", static_cast<unsigned>(pendingClears.size()));
+        pendingClears.clear();
+    }
     response.clear();
     import.cancel();
+    calls.clear();
     // UIDs restart at the next connection: Messages are matched again by content then.
     store.unlinkAll();
 }
@@ -333,6 +400,7 @@ bool poll() {
                    static_cast<unsigned>(inFlight.uid));
         response.clear();
         import.onFailure();
+        changed |= requestFailed(inFlight);
     }
     DsPacket ds;
     while (xQueueReceive(dsQueue, &ds, 0) == pdTRUE) {
@@ -349,6 +417,7 @@ bool poll() {
                 logMessage(LogLevel::Warn, "ANCS", "malformed response for uid=%u: discarded",
                            static_cast<unsigned>(inFlight.uid));
                 import.onFailure();
+                changed |= requestFailed(inFlight);
                 break;
             case AncsResponseDecoder::Result::Ignored:
             case AncsResponseDecoder::Result::Progress:
@@ -357,7 +426,8 @@ bool poll() {
     }
     logDropped("NS", droppedNs);
     logDropped("DS", droppedDs);
-    sendNextRequest();
+    changed |= sendNextRequest();
+    sendNextClear();
     changed |= finishImport();
     return changed;
 }
@@ -368,6 +438,52 @@ State state() {
 
 const MessageStore& messages() {
     return store;
+}
+
+const CallTracker& ringingCalls() {
+    return calls;
+}
+
+bool actOnCall(bool positive) {
+    const Call* call = calls.shown();
+    if (call == nullptr || controlPoint == nullptr || !canAct(*call, positive)) {
+        return false;
+    }
+    const uint32_t uid = call->uid;
+    calls.actionSent(uid);
+    uint8_t command[kAncsActionSize];
+    const size_t size = encodePerformNotificationAction(command, uid, positive);
+    if (!controlPoint->writeValue(command, size, true)) {
+        logMessage(LogLevel::Warn, "ANCS", "%s of call uid=%u refused (error 0x%x)", positive ? "answer" : "decline",
+                   static_cast<unsigned>(uid), controlPoint->getClient()->getLastError());
+        calls.actionFailed(uid);
+        return true;
+    }
+    logMessage(LogLevel::Info, "ANCS", "%s sent: call uid=%u", positive ? "answer" : "decline",
+               static_cast<unsigned>(uid));
+    return true;
+}
+
+void clearChat(const std::string& chat) {
+    // Without ANCS no Message is linked: nothing is sent and every Message stays.
+    if (controlPoint != nullptr) {
+        pendingClears = store.linkedUids(chat);
+    }
+    notClearedCount = store.unlinkedCount(chat);
+    logMessage(LogLevel::Info, "ANCS", "clearing a chat: %u notifications, %u not linked",
+               static_cast<unsigned>(pendingClears.size()), static_cast<unsigned>(notClearedCount));
+    // Nothing to send: only Messages that cannot be cleared.
+    notClearedReady = pendingClears.empty() && notClearedCount > 0;
+}
+
+bool clearing() {
+    return !pendingClears.empty();
+}
+
+bool takeNotCleared() {
+    const bool ready = notClearedReady;
+    notClearedReady = false;
+    return ready;
 }
 
 void clearMessages() {
