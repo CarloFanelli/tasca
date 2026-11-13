@@ -7,10 +7,15 @@
 namespace {
 
 constexpr uint8_t kCommandGetNotificationAttributes = 0;
+constexpr uint8_t kCommandPerformNotificationAction = 2;
+constexpr uint8_t kActionPositive = 0;
+constexpr uint8_t kActionNegative = 1;
 constexpr uint8_t kEventAdded = 0;
 constexpr uint8_t kEventModified = 1;
 constexpr uint8_t kEventRemoved = 2;
 constexpr uint8_t kEventFlagPreExisting = 1 << 2;
+constexpr uint8_t kEventFlagPositiveAction = 1 << 3;
+constexpr uint8_t kEventFlagNegativeAction = 1 << 4;
 constexpr size_t kEventSize = 8;
 constexpr size_t kResponseHeaderSize = 5;
 
@@ -63,6 +68,13 @@ size_t encodeGetNotificationAttributes(uint8_t* out, uint32_t uid) {
     return kAncsRequestSize;
 }
 
+size_t encodePerformNotificationAction(uint8_t* out, uint32_t uid, bool positive) {
+    out[0] = kCommandPerformNotificationAction;
+    putUint32(out + 1, uid);
+    out[5] = positive ? kActionPositive : kActionNegative;
+    return kAncsActionSize;
+}
+
 bool decodeAncsEvent(const uint8_t* data, size_t length, AncsEvent* event) {
     if (length < kEventSize) {
         return false;
@@ -74,6 +86,8 @@ bool decodeAncsEvent(const uint8_t* data, size_t length, AncsEvent* event) {
         default:             return false;
     }
     event->preExisting = (data[1] & kEventFlagPreExisting) != 0;
+    event->positiveAction = (data[1] & kEventFlagPositiveAction) != 0;
+    event->negativeAction = (data[1] & kEventFlagNegativeAction) != 0;
     event->category = data[2];
     event->uid = getUint32(data + 4);
     return true;

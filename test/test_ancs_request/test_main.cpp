@@ -49,6 +49,16 @@ static void test_request_asks_the_five_attributes_with_their_limits() {
     TEST_ASSERT_EQUAL_HEX8_ARRAY(expected, out, sizeof(expected));
 }
 
+static void test_action_command_names_the_uid_and_the_action() {
+    uint8_t out[kAncsActionSize];
+    TEST_ASSERT_EQUAL(6, encodePerformNotificationAction(out, kUid, true));
+    const uint8_t positive[] = {0x02, 0x6d, 0x02, 0x03, 0x04, 0x00};
+    TEST_ASSERT_EQUAL_HEX8_ARRAY(positive, out, sizeof(positive));
+    encodePerformNotificationAction(out, kUid, false);
+    const uint8_t negative[] = {0x02, 0x6d, 0x02, 0x03, 0x04, 0x01};
+    TEST_ASSERT_EQUAL_HEX8_ARRAY(negative, out, sizeof(negative));
+}
+
 static void test_events_are_decoded_with_kind_uid_and_preexisting_flag() {
     const uint8_t added[] = {0x00, 0x14, 0x04, 0x01, 0x6d, 0x02, 0x03, 0x04};  // flags: PreExisting + Important
     const uint8_t modified[] = {0x01, 0x00, 0x04, 0x01, 0x6d, 0x02, 0x03, 0x04};
@@ -73,6 +83,22 @@ static void test_event_category_is_decoded() {
     TEST_ASSERT_EQUAL_UINT8(4, event.category);
     TEST_ASSERT_TRUE(decodeAncsEvent(email, sizeof(email), &event));
     TEST_ASSERT_EQUAL_UINT8(6, event.category);
+}
+
+static void test_event_action_flags_are_decoded() {
+    const uint8_t call[] = {0x00, 0x18, 0x01, 0x01, 0x6d, 0x02, 0x03, 0x04};  // PositiveAction + NegativeAction
+    const uint8_t negativeOnly[] = {0x00, 0x10, 0x01, 0x01, 0x6d, 0x02, 0x03, 0x04};
+    const uint8_t none[] = {0x00, 0x04, 0x04, 0x01, 0x6d, 0x02, 0x03, 0x04};
+    AncsEvent event;
+    TEST_ASSERT_TRUE(decodeAncsEvent(call, sizeof(call), &event));
+    TEST_ASSERT_TRUE(event.positiveAction);
+    TEST_ASSERT_TRUE(event.negativeAction);
+    TEST_ASSERT_TRUE(decodeAncsEvent(negativeOnly, sizeof(negativeOnly), &event));
+    TEST_ASSERT_FALSE(event.positiveAction);
+    TEST_ASSERT_TRUE(event.negativeAction);
+    TEST_ASSERT_TRUE(decodeAncsEvent(none, sizeof(none), &event));
+    TEST_ASSERT_FALSE(event.positiveAction);
+    TEST_ASSERT_FALSE(event.negativeAction);
 }
 
 static void test_short_or_unknown_event_is_rejected() {
@@ -218,8 +244,10 @@ static void test_character_cut_by_the_length_limit_is_dropped() {
 int main() {
     UNITY_BEGIN();
     RUN_TEST(test_request_asks_the_five_attributes_with_their_limits);
+    RUN_TEST(test_action_command_names_the_uid_and_the_action);
     RUN_TEST(test_events_are_decoded_with_kind_uid_and_preexisting_flag);
     RUN_TEST(test_event_category_is_decoded);
+    RUN_TEST(test_event_action_flags_are_decoded);
     RUN_TEST(test_short_or_unknown_event_is_rejected);
     RUN_TEST(test_response_in_one_packet_completes);
     RUN_TEST(test_response_split_inside_a_length_field_completes_on_the_last_fragment);

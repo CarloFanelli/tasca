@@ -12,10 +12,19 @@ constexpr uint8_t kAncsRequestedAttributes = 5;
 // Writes the Control Point command for notification `uid` into out; returns its size.
 size_t encodeGetNotificationAttributes(uint8_t* out, uint32_t uid);
 
+// Perform Notification Action: answers (positive) or declines (negative) a call.
+constexpr size_t kAncsActionSize = 6;
+
+// Writes the Control Point command for the positive or negative action of notification `uid` into out;
+// returns its size.
+size_t encodePerformNotificationAction(uint8_t* out, uint32_t uid, bool positive);
+
 // One Notification Source event.
 struct AncsEvent {
     enum class Kind { Added, Modified, Removed } kind;
     bool preExisting;  // already on the iPhone when the subscription started
+    bool positiveAction;  // the iPhone can perform its positive action (answer a call)
+    bool negativeAction;  // the iPhone can perform its negative action (decline a call)
     uint8_t category;  // CategoryID of the ANCS specification, e.g. 4 Social
     uint32_t uid;
 };
