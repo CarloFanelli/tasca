@@ -1,0 +1,5 @@
+# Task Progress - screen-stack
+
+01-reading-screens-stack: DONE
+02-keyboard-mode-screen: DONE
+03-slim-main-checks: DONE

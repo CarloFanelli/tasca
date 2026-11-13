@@ -20,6 +20,10 @@ _Avoid_: "menu", "preferences".
 The full-screen view of an iPhone call that is ringing, shown over any screen in either mode: caller's name, Enter answers, ` declines. While it is open no key reaches the iPhone.
 _Avoid_: "call popup", "Banner" (a Banner is the 3-second box for a Message in Keyboard mode).
 
+### Screen stack
+The screens open on the Cardputer, one over another: the Inbox always at the bottom, then a Chat screen, the Settings screen or Keyboard mode opened over it. Only the top screen receives keys; closing it returns to the one below, unchanged.
+_Avoid_: "navigation", "router" (one name for the stack).
+
 ### Banner
 A 3-second box over the Keyboard mode context area showing a Message that arrived live while typing.
 _Avoid_: "popup", "toast".
@@ -31,6 +35,8 @@ _Avoid_: "popup", "toast".
 - **The Chat screen opens at the start of the newest Message**: earlier lines above it when it is short; a screen at its end follows a new Message from its start. Why: on hardware, opening at the last line forced the user to scroll up to read a long Message.
 - **The key that wakes the screen depends on the mode**: in Reading mode it only turns the screen on; in Keyboard mode it also reaches the iPhone. Why: chosen by the user, so that typing never loses a key.
 - **Banner only for Messages arriving live**: not for notifications resent at reconnection, nor for updated Messages. Why: the Banner announces a reply worth reading now, not old notifications.
+- **Every screen is a Screen on the Screen stack**: one file per screen, and anything that opens over other screens (Keyboard mode, Call screen, Menu) is opened on the stack and closed back to the screen below. Why: "back where you were" stays one rule instead of flags in the main loop; agreed with the user before incoming calls and the music menu.
+- **A covered Settings screen cancels its waiting prompt**: Keyboard mode opening over it cancels "Press Enter to confirm" at once. Why: same as any other key; the user accepted it in place of the 3 s expiry.
 
 ## Gotchas
 
