@@ -93,6 +93,24 @@ size_t MessageStore::markChatRead(const std::string& chat) {
     return changed;
 }
 
+std::vector<uint32_t> MessageStore::linkedUids(const std::string& chat) const {
+    std::vector<uint32_t> uids;
+    for (const Message& m : messages_) {
+        if (m.chat == chat && m.linked) {
+            uids.push_back(m.uid);
+        }
+    }
+    return uids;
+}
+
+size_t MessageStore::unlinkedCount(const std::string& chat) const {
+    size_t count = 0;
+    for (const Message& m : messages_) {
+        count += m.chat == chat && !m.linked ? 1 : 0;
+    }
+    return count;
+}
+
 void MessageStore::clear() {
     messages_.clear();
     memoryBytes_ = 0;

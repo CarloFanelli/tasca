@@ -5,6 +5,7 @@
 
 #include <deque>
 #include <string>
+#include <vector>
 
 #include "core/chat_key.h"
 
@@ -47,6 +48,11 @@ public:
 
     // Marks every Message of chat read; returns how many were unread.
     size_t markChatRead(const std::string& chat);
+
+    // The UIDs of chat's Messages linked in this connection, oldest first.
+    std::vector<uint32_t> linkedUids(const std::string& chat) const;
+    // How many of chat's Messages are not linked in this connection.
+    size_t unlinkedCount(const std::string& chat) const;
 
     // Removes every Message.
     void clear();

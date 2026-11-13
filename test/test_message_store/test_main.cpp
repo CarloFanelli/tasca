@@ -196,6 +196,24 @@ static void test_clear_empties_the_store() {
     TEST_ASSERT_NULL(store.newestLive());
 }
 
+static void test_linked_uids_of_a_chat_leave_out_other_chats_and_unlinked_messages() {
+    MessageStore store;
+    store.receive(1, false, {"Anna", "Anna"}, "uno", kDate);
+    store.receive(2, false, {"Calcetto", "Luca"}, "due", kDate);
+    store.receive(3, false, {"Anna", "Anna"}, "tre", kDate);
+    store.unlinkAll();
+    store.receive(7, true, {"Anna", "Anna"}, "tre", kDate);
+    store.receive(8, false, {"Anna", "Anna"}, "quattro", kDate);
+    const std::vector<uint32_t> uids = store.linkedUids("Anna");
+    TEST_ASSERT_EQUAL_UINT32(2, uids.size());
+    TEST_ASSERT_EQUAL_UINT32(7, uids[0]);
+    TEST_ASSERT_EQUAL_UINT32(8, uids[1]);
+    TEST_ASSERT_TRUE(store.linkedUids("Nessuno").empty());
+    TEST_ASSERT_EQUAL_UINT32(1, store.unlinkedCount("Anna"));
+    TEST_ASSERT_EQUAL_UINT32(1, store.unlinkedCount("Calcetto"));
+    TEST_ASSERT_EQUAL_UINT32(0, store.unlinkedCount("Nessuno"));
+}
+
 int main() {
     UNITY_BEGIN();
     RUN_TEST(test_new_message_is_unread_and_complete);
@@ -216,5 +234,6 @@ int main() {
     RUN_TEST(test_unlinked_messages_are_removed_after_import);
     RUN_TEST(test_newest_live_message_is_not_a_later_preexisting_one);
     RUN_TEST(test_clear_empties_the_store);
+    RUN_TEST(test_linked_uids_of_a_chat_leave_out_other_chats_and_unlinked_messages);
     return UNITY_END();
 }
