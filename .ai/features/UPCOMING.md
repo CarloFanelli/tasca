@@ -11,4 +11,4 @@ Features whose spec is written and approved, parked while another feature is cur
 
 ## Features
 
-- `incoming-calls`: shows an incoming call on the Call screen; Enter answers, ` declines, beeps while ringing. Where it stopped: `spec approved`.
+- `incoming-calls`: shows an incoming call on the Call screen; Enter answers, ` declines, beeps while ringing. Where it stopped: `in progress` (Call screen and answer/decline done and flashed; left: task 03, the iPhone check of phone, FaceTime and WhatsApp calls with another phone, and the README "Calls" section).
