@@ -1,0 +1,5 @@
+# Task Progress - connection-screen
+
+01-connection-screen: DONE
+02-reopen-on-disconnect: DONE
+03-readme-device-check: DONE

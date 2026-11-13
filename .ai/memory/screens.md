@@ -24,6 +24,10 @@ _Avoid_: "call popup", "Banner" (a Banner is the 3-second box for a Message in K
 The screens open on the Cardputer, one over another: the Inbox always at the bottom, then a Chat screen, the Settings screen or Keyboard mode opened over it. Only the top screen receives keys; closing it returns to the one below, unchanged.
 _Avoid_: "navigation", "router" (one name for the stack).
 
+### Connection screen
+Full screen shown while no iPhone is connected: "Tasca" in large type, one line under it ("Connecting…", "Connect your iPhone" or "Forget Tasca on the iPhone") and the battery level. It opens at boot and on every disconnection, over the Screen stack, and closes when the link is secured; keys do nothing on it except the pairing reset.
+_Avoid_: "startup screen", "splash" (it also returns after a disconnection).
+
 ### Banner
 A 3-second box over the Keyboard mode context area showing a Message that arrived live while typing.
 _Avoid_: "popup", "toast".
@@ -37,8 +41,11 @@ _Avoid_: "popup", "toast".
 - **Banner only for Messages arriving live**: not for notifications resent at reconnection, nor for updated Messages. Why: the Banner announces a reply worth reading now, not old notifications.
 - **Every screen is a Screen on the Screen stack**: one file per screen, and anything that opens over other screens (Keyboard mode, Call screen, Menu) is opened on the stack and closed back to the screen below. Why: "back where you were" stays one rule instead of flags in the main loop; agreed with the user before incoming calls and the music menu.
 - **A covered Settings screen cancels its waiting prompt**: Keyboard mode opening over it cancels "Press Enter to confirm" at once. Why: same as any other key; the user accepted it in place of the 3 s expiry.
+- **The Connection screen covers everything while the iPhone is away**: at boot and on every disconnection, with no keys but the pairing reset; Messages cannot be read until it reconnects. Why: chosen by the user over keeping the Inbox readable.
+- **Large text is efontCN_16 scaled, thickened by redrawing it one font pixel apart**: "Tasca" is 5× with 2-pixel strokes. Why: a FreeSansBold 18 pt font cost about 9 KB of flash; the user compared sizes and strokes on the device.
 
 ## Gotchas
 
 - **Only notifications reach the Cardputer**: no chat history, no Messages the user sent, no muted chats, and Enter cannot reply. Replying means opening the chat on the iPhone and typing in Keyboard mode. A full WhatsApp view would need the optional WiFi bridge of phase 2.
 - **No full-screen sprite**: a 240×135 16-bit buffer takes about 64 KB, more than the Message store budget with no PSRAM; each screen band clears and redraws its own rectangle on a dirty flag.
+- **Thickening a scaled bitmap font by 3 font pixels merges the letters**: the small counters of efontCN_16 (a, s) fill in at any scale; 2 font pixels is the limit.

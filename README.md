@@ -32,6 +32,16 @@ Only one iPhone can be paired. To pair again from scratch, do both: "Forget This
 
 ## Using the Cardputer
 
+**Connection screen** — while the iPhone is not connected, at startup and whenever it disconnects, the Cardputer shows "Tasca" in large type, the battery, and one line:
+
+| Line | Meaning |
+| --- | --- |
+| Connecting… | An iPhone is paired: the Cardputer waits for it to come back in range with Bluetooth on. |
+| Connect your iPhone | No iPhone is paired: pair one (see iPhone setup). |
+| Forget Tasca on the iPhone | Pairing failed because the iPhone remembers an old pairing: forget "Tasca" there, then pair again. |
+
+Keys and G0 do nothing on this screen, except Fn+Del held 3 s. When the iPhone connects, the screen you were on comes back. If "Connecting…" never ends after you forgot "Tasca" on the iPhone, hold Fn+Del for 3 s and pair again.
+
 G0 (the button on the side) switches between Reading mode and Keyboard mode. The status bar at the top shows the mode, the link state, the unread count and the battery.
 
 **Reading mode** — keys stay on the Cardputer.
