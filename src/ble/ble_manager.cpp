@@ -182,8 +182,10 @@ bool handle(const Event& event) {
                        NimBLEDevice::getAdvertising()->isAdvertising() ? "yes" : "no");
             ancs::onDisconnected();
             ams::onDisconnected();
-            // The reason is a host code: an HCI reason arrives offset by BLE_HS_ERR_HCI_BASE.
-            linkLost = event.connHandle == securedConn && event.reason == BLE_HS_HCI_ERR(BLE_ERR_CONN_SPVN_TMO);
+            // The reason is a host code: an HCI reason arrives offset by BLE_HS_ERR_HCI_BASE. Only takeLinkLost()
+            // clears the flag: a later disconnection in the same poll must not erase it.
+            linkLost = linkLost ||
+                       (event.connHandle == securedConn && event.reason == BLE_HS_HCI_ERR(BLE_ERR_CONN_SPVN_TMO));
             securedConn = BLE_HS_CONN_HANDLE_NONE;
             setUpConn = BLE_HS_CONN_HANDLE_NONE;
             pendingSetup = BLE_HS_CONN_HANDLE_NONE;

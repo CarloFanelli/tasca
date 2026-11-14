@@ -7,7 +7,7 @@
 #include "core/screen.h"
 
 // While the iPhone's link is not secured: "Tasca", the line that says what to do, and the battery, over
-// every other screen. Keys do nothing on it but the pairing reset.
+// every other screen. Keys do nothing on it but the pairing reset and silencing the Out-of-range alert.
 class ConnectionScreen : public Screen {
 public:
     // Opens over the top screen while the link is not secured, and closes back to it once it is, without
