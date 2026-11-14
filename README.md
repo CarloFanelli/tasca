@@ -88,3 +88,7 @@ Fn+Enter starts Siri on the iPhone, from either mode, locked or unlocked, withou
 - Replies by voice work: "Reply to Mario on WhatsApp …". On a locked iPhone, Siri asks to unlock before sending: press G0 for Keyboard mode, type the passcode on the Cardputer, Enter.
 - iPhone settings: Settings > Siri: "Press Side Button for Siri" or "Listen for" on, and "Allow Siri When Locked" on. Keep "Type to Siri" off: it replaces voice Siri.
 
+
+## License
+
+MIT: see [LICENSE](LICENSE).
