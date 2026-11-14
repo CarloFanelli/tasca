@@ -2,7 +2,7 @@
 feature: music-menu
 version: 1.0
 status: approved
-completed: false
+completed: true
 base: 400cb1e089af2a71fe909db5e4829ced1c88588a
 ---
 
