@@ -62,6 +62,8 @@ uint16_t pendingSetup = BLE_HS_CONN_HANDLE_NONE;
 // The iPhone's GATT database as discovered on setUpConn; ANCS and AMS hold its characteristics.
 NimBLEClient* gattClient = nullptr;
 std::atomic<bool> servicesChanged{false};
+// The secured link was lost by signal; taken by loop().
+bool linkLost = false;
 bool slowRequested = false;
 // A request was sent and its outcome is not known yet; updates the iPhone starts itself are only logged.
 bool timingsPending = false;
@@ -180,6 +182,8 @@ bool handle(const Event& event) {
                        NimBLEDevice::getAdvertising()->isAdvertising() ? "yes" : "no");
             ancs::onDisconnected();
             ams::onDisconnected();
+            // The reason is a host code: an HCI reason arrives offset by BLE_HS_ERR_HCI_BASE.
+            linkLost = event.connHandle == securedConn && event.reason == BLE_HS_HCI_ERR(BLE_ERR_CONN_SPVN_TMO);
             securedConn = BLE_HS_CONN_HANDLE_NONE;
             setUpConn = BLE_HS_CONN_HANDLE_NONE;
             pendingSetup = BLE_HS_CONN_HANDLE_NONE;
@@ -299,6 +303,12 @@ Phase phase() {
 
 bool bonded() {
     return NimBLEDevice::getNumBonds() > 0;
+}
+
+bool takeLinkLost() {
+    const bool lost = linkLost;
+    linkLost = false;
+    return lost;
 }
 
 const char* phaseName(Phase phase) {

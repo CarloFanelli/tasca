@@ -59,6 +59,26 @@ void pollArrivals() {
     }
 }
 
+// Find iPhone: a link lost by signal starts the Out-of-range alert, which beeps even with sound off; the
+// iPhone's return or Find iPhone turned off ends it.
+void pollOutOfRange() {
+    const bool lost = ble::takeLinkLost();
+    if (lost && settings.findIphone()) {
+        outOfRangeAlert.start(millis());
+        wakeScreen();
+        screenDirty = true;
+        logMessage(LogLevel::Info, "SYS", "out-of-range alert started");
+    } else if (outOfRangeAlert.active() &&
+               (ble::phase() == ble::Phase::Connected || ble::phase() == ble::Phase::Secured || !settings.findIphone())) {
+        outOfRangeAlert.stop();
+        screenDirty = true;
+        logMessage(LogLevel::Info, "SYS", "out-of-range alert ended");
+    }
+    if (outOfRangeAlert.due(millis())) {
+        queueBeeps(3);
+    }
+}
+
 std::vector<KeyPos> readPressedKeys() {
     std::vector<KeyPos> pressed;
     for (const auto& point : M5Cardputer.Keyboard.keyList()) {
@@ -83,6 +103,9 @@ void pollBattery() {
 void pollG0(const std::vector<KeyPos>& pressed) {
     if (M5Cardputer.BtnA.wasPressed()) {
         logMessage(LogLevel::Debug, "BTN", "G0 down");
+        if (outOfRangeAlert.silence()) {
+            logMessage(LogLevel::Info, "SYS", "out-of-range alert silenced");
+        }
         // A press that turns the screen on leaves the mode as it is; during a call or without the iPhone
         // G0 does nothing, Fn+G0 included.
         if (!wakeScreen() && !screens.isOpen(&callScreen) && !screens.isOpen(&connectionScreen)) {
@@ -156,6 +179,7 @@ void loop() {
     const bool bleChanged = ble::poll();
     const bool ancsChanged = ancs::poll();
     statusDirty |= bleChanged || ancsChanged;
+    pollOutOfRange();
     if (ancsChanged) {
         onMessagesChanged();
         pollArrivals();

@@ -9,6 +9,7 @@
 #include "core/inbox.h"
 #include "core/key_events.h"
 #include "core/keymap.h"
+#include "core/out_of_range.h"
 #include "core/reading_nav.h"
 #include "core/screen_stack.h"
 #include "core/screen_timer.h"
@@ -32,6 +33,9 @@ extern bool displayReady;
 extern bool keyboardReady;
 // Fn + Del held for 3 s: forget the bonded iPhone.
 extern ComboHold pairingResetCombo;
+
+// Find iPhone: Beeps while the iPhone is out of range, shown on the Connection screen.
+extern OutOfRangeAlert outOfRangeAlert;
 
 // Reading mode: Del twice clears a Chat on the iPhone.
 extern ClearPrompt clearPrompt;

@@ -51,10 +51,13 @@ void ConnectionScreen::handleKeys(const std::vector<KeyPos>& pressed, const std:
     if (pairingResetCombo.update(pressed, millis()) && ble::resetPairing()) {
         restartAfterPairingReset();
     }
-    // A key only turns the screen on, or keeps it on.
+    // A key only turns the screen on, or keeps it on, and silences the Out-of-range alert.
     for (const KeyEvent& event : events) {
         if (event.kind == KeyEventKind::Down) {
             wakeScreen();
+            if (outOfRangeAlert.silence()) {
+                logMessage(LogLevel::Info, "SYS", "out-of-range alert silenced");
+            }
         }
     }
 }
@@ -82,6 +85,7 @@ void ConnectionScreen::draw() {
     display.setTextSize(1);
     const ble::Phase phase = ble::phase();
     display.setTextColor(TFT_LIGHTGREY, TFT_BLACK);
-    display.drawString(connectionLine(ble::bonded(), phase == ble::Phase::Connected, phase == ble::Phase::PairingFailed),
+    display.drawString(connectionLine(ble::bonded(), phase == ble::Phase::Connected, phase == ble::Phase::PairingFailed,
+                                      outOfRangeAlert.active()),
                        display.width() / 2, kLineTop);
 }

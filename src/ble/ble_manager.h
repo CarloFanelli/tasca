@@ -25,6 +25,9 @@ void requestTimings(bool slow);
 Phase phase();
 // An iPhone is bonded. Call from loop() only.
 bool bonded();
+// True once after the secured link was lost by signal (supervision timeout), not closed by either side.
+// Call from loop() only.
+bool takeLinkLost();
 const char* phaseName(Phase phase);
 
 }  // namespace ble

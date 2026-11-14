@@ -1,6 +1,6 @@
 # Task Progress - find-iphone
 
 01-find-iphone-setting: DONE
-02-out-of-range-alert: TODO
+02-out-of-range-alert: DONE
 03-find-iphone-screen: TODO
 04-iphone-check: TODO

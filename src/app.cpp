@@ -35,6 +35,7 @@ bool displayReady = false;
 bool keyboardReady = false;
 ComboHold pairingResetCombo({kFnKey, kDelKey}, 3000);
 ClearPrompt clearPrompt(kClearConfirmMs);
+OutOfRangeAlert outOfRangeAlert;
 std::vector<ChatSummary> chats;
 ReadingNav nav;
 Settings settings;
