@@ -1,14 +1,14 @@
 ---
 feature: find-iphone
-status: DRAFT
+status: APPROVED
 reviewed: 2026-11-14
-head: affe47721650bd37fd4d9c41ed51e45a334a14c4
+head: 1007e02c9f6a4bb9dbcb9c08dfbe30166e348db2
 ---
 
 # Review — find-iphone
 
-**Scope**: 28 files (primary — diff since base `e1ed3af4`; 11 workflow artifacts under `.ai/` excluded)
-**Findings**: 0 must-fix · 1 should-fix · 1 nit
+**Scope**: re-verification of `src/ble/ble_manager.cpp` and `src/screens/connection_screen.h`, the 2 files changed since the review of `affe4772` (the other files of the feature were covered by that review and are unchanged since; 1 workflow artifact under `.ai/` excluded)
+**Findings**: 0 must-fix · 0 should-fix · 0 nit
 
 ## Findings
 

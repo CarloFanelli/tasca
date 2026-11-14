@@ -11,6 +11,7 @@ Cardputer firmware build, toolchain, hardware facts and on-device behavior.
 - **Failed encryption shows "pairing failed"**, not "pairing invalid — Fn+Del". Why: after "Forget This Device" the iPhone pairs again on its own, so Fn+Del is not the fix the message would suggest.
 
 - **Slow link timings while the screen is off**: 120–150 ms, latency 4, 6 s timeout; with the screen on, a fixed 15–30 ms window, latency 0, 2 s. Why: power saving within Apple's accessory rules, which require the requested maximum interval to exceed the minimum by at least 15 ms, so the exact timings iOS picked cannot be requested back.
+- **Find iPhone proximity scale**: Very close from -70 dBm (up to about 1 m), Near from -76 (about 2 m), Far below, averaged over 2 s. Why: on the user's iPhone the signal was -33 at its top edge, -66 at 1 m and -75 to -81 from 3 m to 5 m alike, so the first scale (Very close from -55) read Near at 1 m and nothing beyond 3 m can tell distances apart.
 
 ## Gotchas
 
@@ -24,3 +25,5 @@ Cardputer firmware build, toolchain, hardware facts and on-device behavior.
 - **ANCS silent when sharing is off**: with "Share System Notifications" off, iOS accepts the Notification Source subscription and sends nothing, so a "denied" state cannot be detected from the subscription result; check the switch first when no NS packet arrives.
 - **ANCS UIDs restart at 0 on every connection**: a Notification Source packet left from a closed connection must not become an attribute request on the next one, where the same UID names another notification.
 - **std::vector costs flash on the ESP32-S3**: a vector of screen pointers added about 2.5 KB of template code; a fixed array did the same job for nothing. Prefer fixed-size containers for small bounded lists in firmware-only code. A `std::deque<uint32_t>` cost about 15 KB; a `std::vector` of a type already used elsewhere costs almost nothing.
+- **Disconnect reasons are host codes**: NimBLE reports an HCI reason offset by `BLE_HS_ERR_HCI_BASE`, so a supervision timeout (signal lost) is 0x208, not 0x08; compare with `BLE_HS_HCI_ERR(...)`.
+- **One poll drains several BLE events**: a flag set by one queued event and read after the poll must not be reassigned by a later event in the same drain (a failed reconnect erased a lost link); set it with `flag = flag || …` and clear it only where it is read.

@@ -2,7 +2,7 @@
 feature: find-iphone
 version: 1.0
 status: approved
-completed: false
+completed: true
 base: e1ed3af4f71db5e2a6b4de1087309026491c9cf6
 ---
 
