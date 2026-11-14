@@ -38,6 +38,16 @@ static void test_decode_cuts_the_value_at_128_bytes_on_a_whole_character() {
     TEST_ASSERT_EQUAL(127, u.value.size());
 }
 
+// The BLE client keeps 128 bytes of a longer value: a character cut there is dropped.
+static void test_decode_drops_a_character_cut_at_exactly_128_bytes() {
+    std::vector<uint8_t> packet = {2, 2, 0};
+    packet.insert(packet.end(), 127, 'a');
+    packet.push_back(0xC3);  // first byte of à, its second one not kept
+    AmsUpdate u;
+    TEST_ASSERT_TRUE(decodeAmsUpdate(packet.data(), packet.size(), &u));
+    TEST_ASSERT_EQUAL(127, u.value.size());
+}
+
 static void test_track_and_player_fields_are_kept() {
     NowPlaying np;
     TEST_ASSERT_TRUE(np.apply(update(kAmsEntityTrack, kAmsTrackTitle, "Song"), 0));
@@ -151,6 +161,7 @@ int main() {
     RUN_TEST(test_decode_reads_header_and_value);
     RUN_TEST(test_decode_rejects_a_packet_shorter_than_its_header);
     RUN_TEST(test_decode_cuts_the_value_at_128_bytes_on_a_whole_character);
+    RUN_TEST(test_decode_drops_a_character_cut_at_exactly_128_bytes);
     RUN_TEST(test_track_and_player_fields_are_kept);
     RUN_TEST(test_same_value_again_changes_nothing);
     RUN_TEST(test_unknown_attribute_changes_nothing);

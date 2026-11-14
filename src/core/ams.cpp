@@ -83,7 +83,9 @@ bool decodeAmsUpdate(const uint8_t* data, size_t length, AmsUpdate* update) {
     const size_t valueLength = length - kHeaderSize;
     update->value.assign(reinterpret_cast<const char*>(data + kHeaderSize),
                          valueLength < kAmsMaxValue ? valueLength : kAmsMaxValue);
-    if (valueLength > kAmsMaxValue) {
+    // The BLE client already keeps only kAmsMaxValue bytes: a value of that length may end inside a character.
+    // A whole value never does, so trimming it changes nothing.
+    if (valueLength >= kAmsMaxValue) {
         trimIncompleteUtf8(update->value);
     }
     return true;
