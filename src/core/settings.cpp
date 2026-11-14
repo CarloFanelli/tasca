@@ -12,12 +12,13 @@ struct Spec {
     uint8_t defaultIndex;
 };
 
-// Sound and wake on message: index 0 is Off, 1 is On.
+// Sound, wake on message and Find iPhone: index 0 is Off, 1 is On.
 constexpr Spec kSpecs[kSettingCount] = {
     {"Brightness", sizeof(kBrightnessPercent), 2},
     {"Sound", 2, 1},
     {"Display timeout", sizeof(kDisplayTimeoutMs) / sizeof(kDisplayTimeoutMs[0]), 1},
     {"Wake on message", 2, 1},
+    {"Find iPhone", 2, 1},
 };
 
 const Spec& spec(Setting setting) {
@@ -75,6 +76,7 @@ std::string Settings::label(Setting setting) const {
             return timeoutLabel(kDisplayTimeoutMs[index]);
         case Setting::Sound:
         case Setting::WakeOnMessage:
+        case Setting::FindIphone:
             break;
     }
     return index == 1 ? "On" : "Off";
@@ -94,4 +96,8 @@ uint32_t Settings::displayTimeoutMs() const {
 
 bool Settings::wakeOnMessage() const {
     return valueIndex(Setting::WakeOnMessage) == 1;
+}
+
+bool Settings::findIphone() const {
+    return valueIndex(Setting::FindIphone) == 1;
 }

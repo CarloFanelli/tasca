@@ -4,7 +4,7 @@
 
 #include "screens/reading_screen.h"
 
-// Brightness, sound, display timeout and wake on new message, then the actions, each run on a
+// Brightness, sound, display timeout, wake on new message and Find iPhone, then the actions, each run on a
 // second Enter. Opened over the Inbox or Chat screen, which stays as it was.
 class SettingsScreen : public ReadingScreen {
 public:

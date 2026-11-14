@@ -68,7 +68,8 @@ void SettingsScreen::update(uint32_t nowMs) {
 }
 
 // The title, then one row per setting, its name on the left and its value on the right, then one row
-// per action, replaced by its prompt while it waits for confirmation.
+// per action, replaced by its prompt while it waits for confirmation. Only the rows that fit are drawn,
+// scrolled to keep the selected one visible.
 void SettingsScreen::draw() {
     auto& display = M5Cardputer.Display;
     display.fillRect(0, kStatusHeight, display.width(), display.height() - kStatusHeight, TFT_BLACK);
@@ -77,31 +78,27 @@ void SettingsScreen::draw() {
     display.setTextColor(TFT_YELLOW, TFT_BLACK);
     display.drawString("Settings", kMargin, kStatusHeight);
     display.drawFastHLine(0, kChatTextTop - 1, display.width(), TFT_DARKGREY);
-    for (size_t i = 0; i < kSettingCount; i++) {
-        const Setting setting = static_cast<Setting>(i);
-        const int top = kChatTextTop + static_cast<int>(i) * kLineHeight;
-        const uint16_t background = i == settingsNav.selected() ? kSelectedBackground : TFT_BLACK;
-        display.fillRect(0, top, display.width(), kLineHeight, background);
-        display.setTextDatum(top_left);
-        display.setTextColor(TFT_WHITE, background);
-        display.drawString(settingName(setting), kMargin, top);
-        display.setTextDatum(top_right);
-        display.setTextColor(TFT_GREEN, background);
-        display.drawString(app::settings.label(setting).c_str(), display.width() - kMargin, top);
-    }
-    for (size_t i = 0; i < kActionCount; i++) {
-        const size_t row = kSettingCount + i;
-        const int top = kChatTextTop + static_cast<int>(row) * kLineHeight;
+    const size_t visibleRows = static_cast<size_t>((display.height() - kChatTextTop) / kLineHeight);
+    const size_t first = settingsNav.firstVisible(visibleRows);
+    for (size_t row = first; row < kSettingCount + kActionCount && row < first + visibleRows; row++) {
+        const int top = kChatTextTop + static_cast<int>(row - first) * kLineHeight;
         const bool selected = row == settingsNav.selected();
         const uint16_t background = selected ? kSelectedBackground : TFT_BLACK;
         display.fillRect(0, top, display.width(), kLineHeight, background);
         display.setTextDatum(top_left);
-        if (selected && settingsNav.confirming()) {
+        if (row < kSettingCount) {
+            const Setting setting = static_cast<Setting>(row);
+            display.setTextColor(TFT_WHITE, background);
+            display.drawString(settingName(setting), kMargin, top);
+            display.setTextDatum(top_right);
+            display.setTextColor(TFT_GREEN, background);
+            display.drawString(app::settings.label(setting).c_str(), display.width() - kMargin, top);
+        } else if (selected && settingsNav.confirming()) {
             display.setTextColor(TFT_RED, background);
             display.drawString("Press Enter to confirm", kMargin, top);
         } else {
             display.setTextColor(TFT_ORANGE, background);
-            display.drawString(kActions[i], kMargin, top);
+            display.drawString(kActions[row - kSettingCount], kMargin, top);
         }
     }
 }

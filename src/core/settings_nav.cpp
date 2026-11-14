@@ -41,5 +41,15 @@ bool SettingsNav::expire(uint32_t nowMs) {
 
 void SettingsNav::reset() {
     selected_ = 0;
+    firstVisible_ = 0;
     confirming_ = false;
+}
+
+size_t SettingsNav::firstVisible(size_t visibleRows) {
+    if (selected_ < firstVisible_) {
+        firstVisible_ = selected_;
+    } else if (visibleRows > 0 && selected_ >= firstVisible_ + visibleRows) {
+        firstVisible_ = selected_ + 1 - visibleRows;
+    }
+    return firstVisible_;
 }

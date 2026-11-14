@@ -28,12 +28,15 @@ public:
     bool expire(uint32_t nowMs);
     // Back to the first row, with no prompt.
     void reset();
+    // The first row shown when visibleRows fit: the list scrolls only as far as the selection needs.
+    size_t firstVisible(size_t visibleRows);
 
 private:
     size_t settingRows_;
     size_t rows_;
     uint32_t confirmMs_;
     size_t selected_ = 0;
+    size_t firstVisible_ = 0;
     bool confirming_ = false;
     uint32_t promptSinceMs_ = 0;
 };

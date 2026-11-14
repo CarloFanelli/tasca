@@ -12,7 +12,7 @@ Preferences preferences;
 bool opened = false;
 
 // Storage keys, in the order of Setting; at most 15 characters.
-constexpr const char* kKeys[kSettingCount] = {"brightness", "sound", "timeout", "wake"};
+constexpr const char* kKeys[kSettingCount] = {"brightness", "sound", "timeout", "wake", "findiphone"};
 
 const char* keyOf(Setting setting) {
     return kKeys[static_cast<size_t>(setting)];

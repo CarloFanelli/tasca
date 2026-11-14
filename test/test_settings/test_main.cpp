@@ -168,6 +168,43 @@ static void test_reset_selects_the_first_row_without_prompt() {
     TEST_ASSERT_FALSE(nav.confirming());
 }
 
+static void test_find_iphone_is_on_by_default_and_toggles() {
+    Settings settings;
+    TEST_ASSERT_EQUAL_STRING("Find iPhone", settingName(Setting::FindIphone));
+    TEST_ASSERT_EQUAL_STRING("On", settings.label(Setting::FindIphone).c_str());
+    TEST_ASSERT_TRUE(settings.findIphone());
+    TEST_ASSERT_TRUE(settings.step(Setting::FindIphone, -1));
+    TEST_ASSERT_FALSE(settings.findIphone());
+    TEST_ASSERT_EQUAL_STRING("Off", settings.label(Setting::FindIphone).c_str());
+}
+
+static void test_short_list_starts_at_the_first_row() {
+    SettingsNav nav(2, 1, 3000);
+    nav.down();
+    nav.down();
+    TEST_ASSERT_EQUAL(0, nav.firstVisible(6));
+}
+
+static void test_list_scrolls_to_keep_the_selection_visible() {
+    SettingsNav nav(5, 2, 3000);
+    for (int i = 0; i < 5; i++) {
+        nav.down();
+    }
+    TEST_ASSERT_EQUAL(0, nav.firstVisible(6));
+    nav.down();
+    TEST_ASSERT_EQUAL(6, nav.selected());
+    TEST_ASSERT_EQUAL(1, nav.firstVisible(6));
+    // Going back up keeps the window until the selection reaches its top.
+    nav.up();
+    TEST_ASSERT_EQUAL(1, nav.firstVisible(6));
+    for (int i = 0; i < 5; i++) {
+        nav.up();
+    }
+    TEST_ASSERT_EQUAL(0, nav.firstVisible(6));
+    nav.reset();
+    TEST_ASSERT_EQUAL(0, nav.firstVisible(6));
+}
+
 int main() {
     UNITY_BEGIN();
     RUN_TEST(test_defaults_are_60_percent_sound_on_30_s_wake_on);
@@ -185,5 +222,8 @@ int main() {
     RUN_TEST(test_prompt_expires_after_3_s);
     RUN_TEST(test_prompt_expiry_survives_clock_wrap);
     RUN_TEST(test_reset_selects_the_first_row_without_prompt);
+    RUN_TEST(test_find_iphone_is_on_by_default_and_toggles);
+    RUN_TEST(test_short_list_starts_at_the_first_row);
+    RUN_TEST(test_list_scrolls_to_keep_the_selection_visible);
     return UNITY_END();
 }
