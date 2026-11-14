@@ -36,6 +36,14 @@ _Avoid_: "navigation", "router" (one name for the stack).
 Full screen shown while no iPhone is connected: "Tasca" in large type, one line under it ("Connecting…", "Connect your iPhone" or "Forget Tasca on the iPhone") and the battery level. It opens at boot and on every disconnection, over the Screen stack, and closes when the link is secured; keys do nothing on it except the pairing reset.
 _Avoid_: "startup screen", "splash" (it also returns after a disconnection).
 
+### Find iPhone screen
+The Reading mode screen opened from the **Menu** that guides to the iPhone by the link's signal strength: a bar, one word (Far, Near, Very close) and a Beep faster closer to it.
+_Avoid_: "radar", "finder" (one name for the screen).
+
+### Out-of-range alert
+The repeated triple **Beep** and the "iPhone out of range" line after the link to the iPhone is lost by signal. A link the iPhone closes (Bluetooth off, iPhone off) starts none.
+_Avoid_: "disconnection alert" (not every disconnection starts it).
+
 ### Banner
 A 3-second box over the Keyboard mode context area showing a Message that arrived live while typing.
 _Avoid_: "popup", "toast".
