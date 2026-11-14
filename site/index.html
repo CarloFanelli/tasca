@@ -1,0 +1,88 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Install Tasca</title>
+<meta name="description" content="Install Tasca on the M5Stack Cardputer v1.1 from the browser.">
+<script type="module" src="https://unpkg.com/esp-web-tools@10.4.0/dist/web/install-button.js?module"></script>
+<style>
+:root {
+  --bg: #f3f4f6; --fg: #1d2026; --muted: #5d6370; --card: #ffffff; --line: #dfe2e7;
+  --accent: #d9622b; --accent-fg: #ffffff; --warn: #8a5a00; --warn-bg: #fff4dc;
+  --sans: -apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, Arial, sans-serif;
+}
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg: #14161a; --fg: #eceef1; --muted: #9aa1ad; --card: #1d2026; --line: #2c3038;
+    --accent: #f08a55; --accent-fg: #14161a; --warn: #f3c46b; --warn-bg: #2d2617; color-scheme: dark;
+  }
+}
+* { box-sizing: border-box; }
+body { margin: 0; background: var(--bg); color: var(--fg); font-family: var(--sans); line-height: 1.55; }
+main { max-width: 760px; margin: 0 auto; padding: 40px 16px 64px; display: flex; flex-direction: column; gap: 28px; }
+header { display: flex; flex-direction: column; align-items: center; gap: 12px; text-align: center; }
+header img { width: 100%; max-width: 440px; }
+h1 { margin: 0; font-size: 2.2rem; letter-spacing: -0.01em; }
+h2 { margin: 0 0 8px; font-size: 1.15rem; }
+p { margin: 0; }
+.lead { color: var(--muted); max-width: 60ch; }
+section { background: var(--card); border: 1px solid var(--line); border-radius: 12px; padding: 20px; }
+ol { margin: 0; padding-left: 1.3em; display: flex; flex-direction: column; gap: 8px; }
+.install { display: flex; flex-direction: column; align-items: center; gap: 12px; text-align: center; }
+esp-web-install-button button[slot="activate"] {
+  font: 600 1.05rem var(--sans); color: var(--accent-fg); background: var(--accent);
+  border: 0; border-radius: 10px; padding: 14px 28px; cursor: pointer;
+}
+esp-web-install-button button[slot="activate"]:focus-visible { outline: 3px solid var(--fg); outline-offset: 2px; }
+.note { color: var(--warn); background: var(--warn-bg); border-radius: 8px; padding: 10px 14px; font-size: 0.95rem; }
+.small { color: var(--muted); font-size: 0.92rem; }
+ol + .small { margin-top: 12px; }
+a { color: var(--accent); }
+code { font-size: 0.92em; }
+</style>
+</head>
+<body>
+<main>
+  <header>
+    <img src="cardputer.svg" alt="Tasca on the M5Stack Cardputer">
+    <h1>Tasca</h1>
+    <p class="lead">Keep your iPhone in your pocket: WhatsApp notifications, music controls and Find iPhone on the M5Stack Cardputer v1.1.</p>
+  </header>
+
+  <section>
+    <h2>Before you start</h2>
+    <ol>
+      <li>Use <strong>Chrome</strong> or <strong>Edge</strong> on a computer (Windows, macOS or Linux). Safari, Firefox and phones cannot talk to USB devices.</li>
+      <li>Connect the <strong>Cardputer v1.1</strong> with a USB-C <strong>data</strong> cable and switch it on.</li>
+      <li>Installing replaces whatever runs on the Cardputer now, and erases a previous Tasca pairing.</li>
+    </ol>
+  </section>
+
+  <section class="install">
+    <h2>Install</h2>
+    <esp-web-install-button manifest="manifest.json">
+      <button slot="activate">Install Tasca</button>
+      <span slot="unsupported" class="note">This browser cannot install firmware. Open this page in Chrome or Edge on a computer.</span>
+      <span slot="not-allowed" class="note">The page must be opened over https to install firmware.</span>
+    </esp-web-install-button>
+    <p class="small">Click the button, pick the Cardputer in the list (usually "USB JTAG/serial debug unit"), then confirm. It takes about a minute.</p>
+  </section>
+
+  <section>
+    <h2>If the Cardputer is not in the list</h2>
+    <p>Put it in download mode: unplug it, hold the <strong>G0</strong> button on its side while plugging the cable back in, then click Install again. In download mode the screen stays dark: press the reset button once the install is done.</p>
+  </section>
+
+  <section>
+    <h2>Then, on the iPhone</h2>
+    <ol>
+      <li>Settings &gt; Bluetooth &gt; select <strong>Tasca</strong>. No PIN is needed.</li>
+      <li>Accept the request to share notifications, or turn on "Share System Notifications" under the (i) next to Tasca.</li>
+      <li>Set WhatsApp previews to "Always".</li>
+    </ol>
+    <p class="small">The full guide, keys and troubleshooting are in the <a href="https://github.com/CarloFanelli/tasca#readme">README</a>. Firmware files for manual install are on the <a href="https://github.com/CarloFanelli/tasca/releases/latest">releases page</a>.</p>
+  </section>
+</main>
+</body>
+</html>

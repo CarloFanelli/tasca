@@ -19,6 +19,8 @@ All commands run from the repository root. The first build needs network access:
 
 GitHub Actions (`.github/workflows/ci.yml`) runs the host tests and the firmware build only when commits land on `main` (a merge or a merged pull request from `dev`; pushes to `dev` and open pull requests do not run it), with the same PlatformIO version.
 
+`.github/workflows/release.yml` runs on a tag `vX.Y.Z` that matches `TASCA_VERSION` in `platformio.ini`: it builds the firmware, publishes a GitHub release with `tasca-X.Y.Z-cardputer.bin` (bootloader, partitions and app merged, flashed at 0x0, erases pairing and settings) and `tasca-X.Y.Z-update.bin` (app only, at 0x10000), and deploys the browser install page in `site/` to GitHub Pages (https://carlofanelli.github.io/tasca/) with that firmware.
+
 PlatformIO CLI is installed with Homebrew (`brew install platformio`). Host tests need a working Apple C++ compiler (Command Line Tools, `xcode-select --install`).
 
 ## Host tests

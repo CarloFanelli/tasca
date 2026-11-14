@@ -1,0 +1,85 @@
+# On a version tag (v0.1.0): builds the firmware, publishes a GitHub release with the ready-to-flash files,
+# and deploys the browser install page (site/) to GitHub Pages with that firmware.
+name: Release
+
+on:
+  push:
+    tags: ["v*"]
+
+permissions:
+  contents: write
+  pages: write
+  id-token: write
+
+concurrency:
+  group: release
+  cancel-in-progress: false
+
+jobs:
+  release:
+    runs-on: ubuntu-24.04
+    environment:
+      name: github-pages
+      url: ${{ steps.deploy.outputs.page_url }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - uses: actions/cache@v4
+        with:
+          path: |
+            ~/.platformio
+            .pio/libdeps
+          key: pio-${{ runner.os }}-${{ hashFiles('platformio.ini') }}
+
+      - name: Install PlatformIO
+        run: pip install platformio==6.2.0
+
+      # The tag must match the version the firmware reports in its boot log.
+      - name: Check version
+        run: |
+          version="${GITHUB_REF_NAME#v}"
+          grep -q "TASCA_VERSION=\\\\\"$version\\\\\"" platformio.ini || {
+            echo "platformio.ini TASCA_VERSION does not match tag $GITHUB_REF_NAME"; exit 1; }
+          echo "VERSION=$version" >> "$GITHUB_ENV"
+
+      - name: Host tests
+        run: pio test -e native
+
+      - name: Build firmware
+        run: pio run -e cardputer
+
+      # One file to flash at 0x0 on a new install; the app alone, at 0x10000, keeps pairing and settings.
+      - name: Package firmware
+        run: |
+          build=.pio/build/cardputer
+          mkdir -p dist
+          ~/.platformio/packages/tool-esptool/esptool --chip esp32s3 merge-bin \
+            -o "dist/tasca-$VERSION-cardputer.bin" \
+            0x0 "$build/bootloader.bin" 0x8000 "$build/partitions.bin" \
+            0xe000 ~/.platformio/packages/framework-arduinoespressif32/tools/partitions/boot_app0.bin \
+            0x10000 "$build/firmware.bin"
+          cp "$build/firmware.bin" "dist/tasca-$VERSION-update.bin"
+
+      - name: Publish release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh release create "$GITHUB_REF_NAME" dist/*.bin --title "Tasca $VERSION" --generate-notes
+
+      - name: Assemble install page
+        run: |
+          mkdir -p _site/firmware
+          cp site/* _site/
+          cp "dist/tasca-$VERSION-cardputer.bin" _site/firmware/tasca-cardputer.bin
+          sed -i "s/VERSION/$VERSION/" _site/manifest.json
+
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: _site
+
+      - id: deploy
+        uses: actions/deploy-pages@v4
