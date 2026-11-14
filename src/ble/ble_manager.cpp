@@ -305,6 +305,14 @@ bool bonded() {
     return NimBLEDevice::getNumBonds() > 0;
 }
 
+int8_t linkRssi() {
+    int8_t rssi = 0;
+    if (securedConn == BLE_HS_CONN_HANDLE_NONE || ble_gap_conn_rssi(securedConn, &rssi) != 0) {
+        return 0;
+    }
+    return rssi;
+}
+
 bool takeLinkLost() {
     const bool lost = linkLost;
     linkLost = false;

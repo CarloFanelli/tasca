@@ -2,5 +2,5 @@
 
 01-find-iphone-setting: DONE
 02-out-of-range-alert: DONE
-03-find-iphone-screen: TODO
+03-find-iphone-screen: DONE
 04-iphone-check: TODO

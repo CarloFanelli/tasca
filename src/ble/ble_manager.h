@@ -28,6 +28,9 @@ bool bonded();
 // True once after the secured link was lost by signal (supervision timeout), not closed by either side.
 // Call from loop() only.
 bool takeLinkLost();
+// The secured link's signal strength in dBm, read from the controller with no traffic to the iPhone; 0 with
+// no secured link or when the read fails. Call from loop() only.
+int8_t linkRssi();
 const char* phaseName(Phase phase);
 
 }  // namespace ble

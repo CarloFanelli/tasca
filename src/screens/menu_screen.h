@@ -4,7 +4,7 @@
 
 #include "screens/reading_screen.h"
 
-// Music, WhatsApp and Settings, opened with Fn+G0 over any screen in either mode.
+// Music, Find iPhone, WhatsApp and Settings, opened with Fn+G0 over any screen in either mode.
 class MenuScreen : public ReadingScreen {
 public:
     void open();

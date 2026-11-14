@@ -8,6 +8,7 @@
 #include "core/inbox.h"
 #include "core/settings_nav.h"
 #include "screens/chat_screen.h"
+#include "screens/find_screen.h"
 #include "screens/keyboard_screen.h"
 #include "screens/music_screen.h"
 #include "screens/settings_screen.h"
@@ -19,8 +20,8 @@ MenuScreen menuScreen;
 
 namespace {
 
-enum Item : size_t { kMusic, kWhatsApp, kSettings, kItemCount };
-constexpr const char* kItemNames[kItemCount] = {"Music", "WhatsApp", "Settings"};
+enum Item : size_t { kMusic, kFindIphone, kWhatsApp, kSettings, kItemCount };
+constexpr const char* kItemNames[kItemCount] = {"Music", "Find iPhone", "WhatsApp", "Settings"};
 // Rows only, no actions: no prompt to confirm.
 SettingsNav menuNav(kItemCount, 0, 0);
 
@@ -32,6 +33,7 @@ void closeToInbox() {
     }
     app::screens.remove(&settingsScreen);
     app::screens.remove(&musicScreen);
+    app::screens.remove(&findScreen);
     if (app::screens.isOpen(&chatScreen)) {
         chatScreen.close();
     }
@@ -104,6 +106,8 @@ void MenuScreen::onKeyDown(const KeyEvent& event) {
         closeToInbox();
         if (item == kMusic) {
             musicScreen.open();
+        } else if (item == kFindIphone) {
+            findScreen.open();
         } else if (item == kSettings) {
             settingsScreen.open(true);
         }
