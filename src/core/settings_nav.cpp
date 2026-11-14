@@ -38,3 +38,8 @@ bool SettingsNav::cancel() {
 bool SettingsNav::expire(uint32_t nowMs) {
     return confirming_ && nowMs - promptSinceMs_ >= confirmMs_ && cancel();
 }
+
+void SettingsNav::reset() {
+    selected_ = 0;
+    confirming_ = false;
+}

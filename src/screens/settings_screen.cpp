@@ -49,7 +49,10 @@ void stepSetting(int direction) {
 
 }  // namespace
 
-void SettingsScreen::open() {
+void SettingsScreen::open(bool fromStart) {
+    if (fromStart) {
+        settingsNav.reset();
+    }
     app::screens.open(this);
     app::screenDirty = true;
 }

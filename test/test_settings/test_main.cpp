@@ -159,6 +159,15 @@ static void test_prompt_expiry_survives_clock_wrap() {
     TEST_ASSERT_TRUE(nav.expire(0xFFFFFF00u + kConfirmMs));
 }
 
+static void test_reset_selects_the_first_row_without_prompt() {
+    SettingsNav nav(1, 1, 3000);
+    nav.down();
+    nav.enter(0);
+    nav.reset();
+    TEST_ASSERT_EQUAL(0, nav.selected());
+    TEST_ASSERT_FALSE(nav.confirming());
+}
+
 int main() {
     UNITY_BEGIN();
     RUN_TEST(test_defaults_are_60_percent_sound_on_30_s_wake_on);
@@ -175,5 +184,6 @@ int main() {
     RUN_TEST(test_cancelled_prompt_needs_two_enters_again);
     RUN_TEST(test_prompt_expires_after_3_s);
     RUN_TEST(test_prompt_expiry_survives_clock_wrap);
+    RUN_TEST(test_reset_selects_the_first_row_without_prompt);
     return UNITY_END();
 }

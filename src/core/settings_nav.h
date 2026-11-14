@@ -26,6 +26,8 @@ public:
     bool cancel();
     // Removes a prompt shown for confirmMs or longer; true when it did.
     bool expire(uint32_t nowMs);
+    // Back to the first row, with no prompt.
+    void reset();
 
 private:
     size_t settingRows_;

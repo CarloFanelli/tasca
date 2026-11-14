@@ -8,7 +8,8 @@
 // second Enter. Opened over the Inbox or Chat screen, which stays as it was.
 class SettingsScreen : public ReadingScreen {
 public:
-    void open();
+    // fromStart: the first row selected, as when opened from the Menu.
+    void open(bool fromStart = false);
     // Cancels an action waiting for confirmation; true when one was.
     bool cancelPrompt();
 
