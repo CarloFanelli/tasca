@@ -3,6 +3,7 @@
 #include <esp_efuse_table.h>
 
 #include "app.h"
+#include "ble/ams_client.h"
 #include "ble/ancs_client.h"
 #include "ble/ble_manager.h"
 #include "core/key_events.h"
@@ -10,6 +11,8 @@
 #include "screens/call_screen.h"
 #include "screens/connection_screen.h"
 #include "screens/keyboard_screen.h"
+#include "screens/menu_screen.h"
+#include "screens/music_screen.h"
 #include "settings_store.h"
 #include "siri.h"
 #include "ui/status_bar.h"
@@ -81,9 +84,19 @@ void pollG0(const std::vector<KeyPos>& pressed) {
     if (M5Cardputer.BtnA.wasPressed()) {
         logMessage(LogLevel::Debug, "BTN", "G0 down");
         // A press that turns the screen on leaves the mode as it is; during a call or without the iPhone
-        // G0 does nothing.
+        // G0 does nothing, Fn+G0 included.
         if (!wakeScreen() && !screens.isOpen(&callScreen) && !screens.isOpen(&connectionScreen)) {
-            if (inKeyboardMode()) {
+            const bool menuShown = screens.top() == &menuScreen;
+            // Fn+G0 opens or closes the Menu; G0 alone closes it, then switches the mode.
+            const bool fn = containsKey(pressed, kFnKey);
+            if (menuShown) {
+                menuScreen.close(pressed);
+            }
+            if (fn) {
+                if (!menuShown) {
+                    menuScreen.open();
+                }
+            } else if (inKeyboardMode()) {
                 keyboardScreen.close();
             } else {
                 keyboardScreen.open(pressed);
@@ -146,6 +159,10 @@ void loop() {
     if (ancsChanged) {
         onMessagesChanged();
         pollArrivals();
+    }
+    // Only the Menu and the Music screen show what the iPhone plays.
+    if (ams::poll() && (screens.top() == &menuScreen || screens.top() == &musicScreen)) {
+        screenDirty = true;
     }
     screens.top()->update(millis());
     pollBattery();
