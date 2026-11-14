@@ -6,6 +6,7 @@
 
 #include <atomic>
 
+#include "ble/ams_client.h"
 #include "ble/ancs_client.h"
 #include "ble/hid_keyboard.h"
 #include "log.h"
@@ -35,6 +36,8 @@ constexpr Timings kSlowTimings{96, 120, 4, 600};
 
 const NimBLEUUID kHidServiceUuid(static_cast<uint16_t>(0x1812));
 const NimBLEUUID kAncsServiceUuid("7905F431-B5CE-4E99-A40F-4B1E122D00D0");
+const NimBLEUUID kGenericAttributeUuid(static_cast<uint16_t>(0x1801));
+const NimBLEUUID kServiceChangedUuid(static_cast<uint16_t>(0x2A05));
 
 struct Event {
     enum class Type : uint8_t { Connect, Disconnect, Authentication, TimingsUpdate } type;
@@ -53,6 +56,12 @@ QueueHandle_t events = nullptr;
 std::atomic<uint32_t> droppedEvents{0};
 Phase currentPhase = Phase::Advertising;
 uint16_t securedConn = BLE_HS_CONN_HANDLE_NONE;
+// The connection whose iPhone services are set up, or waiting to be in loop().
+uint16_t setUpConn = BLE_HS_CONN_HANDLE_NONE;
+uint16_t pendingSetup = BLE_HS_CONN_HANDLE_NONE;
+// The iPhone's GATT database as discovered on setUpConn; ANCS and AMS hold its characteristics.
+NimBLEClient* gattClient = nullptr;
+std::atomic<bool> servicesChanged{false};
 bool slowRequested = false;
 // A request was sent and its outcome is not known yet; updates the iPhone starts itself are only logged.
 bool timingsPending = false;
@@ -87,6 +96,30 @@ class ServerCallbacks : public NimBLEServerCallbacks {
 };
 
 ServerCallbacks serverCallbacks;
+
+// Runs on the BLE host task: loop() discovers again.
+void onServiceChanged(NimBLERemoteCharacteristic*, uint8_t*, size_t, bool) {
+    servicesChanged = true;
+}
+
+// Blocking discovery and subscriptions: loop() only.
+bool setUpServices(uint16_t connHandle) {
+    // Once per connection: getClient() forgets every service discovered so far, ANCS included.
+    gattClient = NimBLEDevice::getServer()->getClient(connHandle);
+    if (gattClient == nullptr) {
+        logMessage(LogLevel::Error, "BLE", "no GATT client for connection %u", connHandle);
+        return false;
+    }
+    const bool changed = ancs::setUp(gattClient);
+    ams::setUp(gattClient);
+    NimBLERemoteService* service = gattClient->getService(kGenericAttributeUuid);
+    NimBLERemoteCharacteristic* serviceChanged =
+        service == nullptr ? nullptr : service->getCharacteristic(kServiceChangedUuid);
+    if (serviceChanged == nullptr || !serviceChanged->subscribe(false, onServiceChanged, true)) {
+        logMessage(LogLevel::Info, "BLE", "service changes not followed");
+    }
+    return changed;
+}
 
 void startAdvertising() {
     NimBLEAdvertisementData advertisement;
@@ -146,7 +179,12 @@ bool handle(const Event& event) {
             logMessage(LogLevel::Info, "BLE", "disconnected reason=0x%x advertising=%s", event.reason,
                        NimBLEDevice::getAdvertising()->isAdvertising() ? "yes" : "no");
             ancs::onDisconnected();
+            ams::onDisconnected();
             securedConn = BLE_HS_CONN_HANDLE_NONE;
+            setUpConn = BLE_HS_CONN_HANDLE_NONE;
+            pendingSetup = BLE_HS_CONN_HANDLE_NONE;
+            gattClient = nullptr;
+            servicesChanged = false;
             timingsPending = false;
             // A failed pairing stays visible while advertising, until the next connection.
             return currentPhase == Phase::PairingFailed ? false : setPhase(Phase::Advertising);
@@ -166,7 +204,11 @@ bool handle(const Event& event) {
             logMessage(LogLevel::Info, "BLE", "secured bonded=%s peer=%s", event.bonded ? "yes" : "no",
                        peer.toString().c_str());
             securedConn = event.connHandle;
-            ancs::onSecured(event.connHandle);
+            // iOS repeats the encryption event: set up once per connection.
+            if (event.connHandle != setUpConn) {
+                setUpConn = event.connHandle;
+                pendingSetup = event.connHandle;
+            }
             return setPhase(Phase::Secured);
 
         case Event::Type::TimingsUpdate:
@@ -181,6 +223,7 @@ bool handle(const Event& event) {
 void begin(uint8_t batteryLevel) {
     events = xQueueCreate(kEventQueueDepth, sizeof(Event));
     ancs::begin();
+    ams::begin();
 
     NimBLEDevice::init(kDeviceName);
     NimBLEDevice::setSecurityAuth(true, false, true);
@@ -208,6 +251,15 @@ bool poll() {
     const uint32_t dropped = droppedEvents.exchange(0);
     if (dropped > 0) {
         logMessage(LogLevel::Warn, "BLE", "event queue full: %u events dropped", static_cast<unsigned>(dropped));
+    }
+    if (pendingSetup != BLE_HS_CONN_HANDLE_NONE) {
+        const uint16_t connHandle = pendingSetup;
+        pendingSetup = BLE_HS_CONN_HANDLE_NONE;
+        changed |= setUpServices(connHandle);
+    }
+    if (servicesChanged.exchange(false) && gattClient != nullptr) {
+        logMessage(LogLevel::Info, "BLE", "services changed on the iPhone");
+        ams::onServicesChanged(gattClient);
     }
     return changed;
 }

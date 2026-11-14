@@ -9,8 +9,8 @@ enum class Phase { Advertising, Connected, Secured, PairingFailed, PairingReset 
 // Starts the BLE stack, the GATT server and advertising as "Tasca".
 void begin(uint8_t batteryLevel);
 
-// Handles the events queued by the BLE host task. Call from loop() only.
-// Returns true when the phase changed.
+// Handles the events queued by the BLE host task, then sets up the iPhone's services (ANCS, AMS) once
+// the link is secured. Call from loop() only. Returns true when the phase or the ANCS state changed.
 bool poll();
 
 // Disconnects and erases every stored bond. Call from loop() only.

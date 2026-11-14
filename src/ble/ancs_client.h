@@ -7,6 +7,8 @@
 #include "core/incoming_call.h"
 #include "core/message_store.h"
 
+class NimBLEClient;
+
 // Apple Notification Center Service client, on the connection where the Cardputer is peripheral.
 namespace ancs {
 
@@ -14,11 +16,12 @@ enum class State { Idle, Active, Denied };
 
 void begin();
 
-// Called from loop() by the BLE manager. onSecured may repeat for the same connection.
-void onSecured(uint16_t connHandle);
+// Blocking discovery and subscriptions on the connection's GATT client: loop() only, never from a NimBLE
+// callback. True when the state changed.
+bool setUp(NimBLEClient* client);
 void onDisconnected();
 
-// loop() only: runs the pending setup (blocking GATT calls) and decodes queued packets.
+// loop() only: decodes queued packets and sends the pending requests.
 // Returns true when the state, the stored Messages or the ringing calls changed.
 bool poll();
 

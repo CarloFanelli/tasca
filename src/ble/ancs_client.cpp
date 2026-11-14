@@ -24,8 +24,6 @@ const NimBLEUUID kNotificationSourceUuid("9FBF120D-6301-42D9-8C58-25E699A21DBD")
 const NimBLEUUID kDataSourceUuid("22EAC6E9-24D6-4BB5-BE44-B36ACE7C7BFB");
 const NimBLEUUID kControlPointUuid("69D1D8F3-45E1-49A8-9821-9BBDFDAAD9D9");
 
-constexpr uint16_t kNoConnection = BLE_HS_CONN_HANDLE_NONE;
-
 template <size_t N>
 struct Packet {
     uint16_t length;  // as received, possibly more than N
@@ -54,8 +52,6 @@ QueueHandle_t dsQueue = nullptr;
 std::atomic<uint32_t> droppedNs{0};
 std::atomic<uint32_t> droppedDs{0};
 
-uint16_t pendingSetup = kNoConnection;
-uint16_t activeConnection = kNoConnection;
 State currentState = State::Idle;
 MessageStore store;
 CallTracker calls;
@@ -163,50 +159,6 @@ bool setState(State next) {
     }
     currentState = next;
     return true;
-}
-
-// Blocking discovery and subscriptions: loop() only, never from a NimBLE callback.
-bool setUp(uint16_t connHandle) {
-    NimBLEClient* client = NimBLEDevice::getServer()->getClient(connHandle);
-    if (client == nullptr) {
-        logMessage(LogLevel::Error, "ANCS", "no GATT client for connection %u", connHandle);
-        return false;
-    }
-    NimBLERemoteService* service = client->getService(kServiceUuid);
-    if (!client->isConnected()) {
-        logMessage(LogLevel::Info, "ANCS", "setup interrupted: disconnected");
-        return false;
-    }
-    if (service == nullptr) {
-        logMessage(LogLevel::Warn, "ANCS", "ANCS not found");
-        return false;
-    }
-    NimBLERemoteCharacteristic* dataSource = service->getCharacteristic(kDataSourceUuid);
-    NimBLERemoteCharacteristic* notificationSource = service->getCharacteristic(kNotificationSourceUuid);
-    NimBLERemoteCharacteristic* controlPointCharacteristic = service->getCharacteristic(kControlPointUuid);
-    // subscribe() reports success when the CCCD is missing: check it, or a silent link would look active.
-    const NimBLEUUID cccdUuid(static_cast<uint16_t>(0x2902));
-    if (dataSource == nullptr || notificationSource == nullptr || controlPointCharacteristic == nullptr ||
-        dataSource->getDescriptor(cccdUuid) == nullptr || notificationSource->getDescriptor(cccdUuid) == nullptr) {
-        logMessage(LogLevel::Warn, "ANCS", "ANCS not found: characteristics missing");
-        return false;
-    }
-    // Data Source first: the responses to attribute requests must never be missed.
-    const bool subscribed = dataSource->subscribe(true, onDataSource, true) &&
-                            notificationSource->subscribe(true, onNotificationSource, true);
-    if (!client->isConnected()) {
-        logMessage(LogLevel::Info, "ANCS", "setup interrupted: disconnected");
-        return false;
-    }
-    if (!subscribed) {
-        logMessage(LogLevel::Warn, "ANCS", "subscription refused (error %d): notification sharing not allowed?",
-                   client->getLastError());
-        return setState(State::Denied);
-    }
-    logMessage(LogLevel::Info, "ANCS", "subscribed: data source, notification source");
-    controlPoint = controlPointCharacteristic;
-    import.start(millis());
-    return setState(State::Active);
 }
 
 // Returns true when the stored Messages or the ringing calls changed.
@@ -347,17 +299,46 @@ void begin() {
     dsQueue = xQueueCreate(kDsQueueDepth, sizeof(DsPacket));
 }
 
-void onSecured(uint16_t connHandle) {
-    // iOS repeats the encryption event: set up once per connection (getClient() drops the discovered services).
-    if (connHandle != activeConnection) {
-        activeConnection = connHandle;
-        pendingSetup = connHandle;
+bool setUp(NimBLEClient* client) {
+    logMessage(LogLevel::Info, "ANCS", "discovering");
+    NimBLERemoteService* service = client->getService(kServiceUuid);
+    if (!client->isConnected()) {
+        logMessage(LogLevel::Info, "ANCS", "setup interrupted: disconnected");
+        return false;
     }
+    if (service == nullptr) {
+        logMessage(LogLevel::Warn, "ANCS", "ANCS not found");
+        return false;
+    }
+    NimBLERemoteCharacteristic* dataSource = service->getCharacteristic(kDataSourceUuid);
+    NimBLERemoteCharacteristic* notificationSource = service->getCharacteristic(kNotificationSourceUuid);
+    NimBLERemoteCharacteristic* controlPointCharacteristic = service->getCharacteristic(kControlPointUuid);
+    // subscribe() reports success when the CCCD is missing: check it, or a silent link would look active.
+    const NimBLEUUID cccdUuid(static_cast<uint16_t>(0x2902));
+    if (dataSource == nullptr || notificationSource == nullptr || controlPointCharacteristic == nullptr ||
+        dataSource->getDescriptor(cccdUuid) == nullptr || notificationSource->getDescriptor(cccdUuid) == nullptr) {
+        logMessage(LogLevel::Warn, "ANCS", "ANCS not found: characteristics missing");
+        return false;
+    }
+    // Data Source first: the responses to attribute requests must never be missed.
+    const bool subscribed = dataSource->subscribe(true, onDataSource, true) &&
+                            notificationSource->subscribe(true, onNotificationSource, true);
+    if (!client->isConnected()) {
+        logMessage(LogLevel::Info, "ANCS", "setup interrupted: disconnected");
+        return false;
+    }
+    if (!subscribed) {
+        logMessage(LogLevel::Warn, "ANCS", "subscription refused (error %d): notification sharing not allowed?",
+                   client->getLastError());
+        return setState(State::Denied);
+    }
+    logMessage(LogLevel::Info, "ANCS", "subscribed: data source, notification source");
+    controlPoint = controlPointCharacteristic;
+    import.start(millis());
+    return setState(State::Active);
 }
 
 void onDisconnected() {
-    activeConnection = kNoConnection;
-    pendingSetup = kNoConnection;
     currentState = State::Idle;
     controlPoint = nullptr;
     const size_t dropped = pendingRequests.size() + (response.active() ? 1 : 0);
@@ -379,12 +360,6 @@ void onDisconnected() {
 
 bool poll() {
     bool changed = false;
-    if (pendingSetup != kNoConnection) {
-        const uint16_t connHandle = pendingSetup;
-        pendingSetup = kNoConnection;
-        logMessage(LogLevel::Info, "ANCS", "discovering");
-        changed |= setUp(connHandle);
-    }
     NsPacket ns;
     while (xQueueReceive(nsQueue, &ns, 0) == pdTRUE) {
         changed |= handleEvent(ns);
