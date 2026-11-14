@@ -28,6 +28,7 @@ private:
     int shownBar_ = 0;
     uint32_t nextReadMs_ = 0;
     uint32_t nextBeepMs_ = 0;
+    uint32_t nextLogMs_ = 0;
     // The last key pressed here: the Beeps stop after kQuietAfterMs without one.
     uint32_t lastKeyMs_ = 0;
 };

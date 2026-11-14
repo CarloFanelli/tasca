@@ -15,6 +15,7 @@ FindScreen findScreen;
 namespace {
 
 constexpr uint32_t kReadPeriodMs = 250;
+constexpr uint32_t kLogPeriodMs = 1000;
 // A Find iPhone screen left open with the screen off stops beeping after this long without a key.
 constexpr uint32_t kQuietAfterMs = 5 * 60 * 1000;
 constexpr int kBarTop = kChatTextTop + 10;
@@ -65,6 +66,11 @@ void FindScreen::update(uint32_t nowMs) {
     if (static_cast<int32_t>(nowMs - nextReadMs_) >= 0) {
         meter_.add(ble::linkRssi(), nowMs);
         nextReadMs_ = nowMs + kReadPeriodMs;
+    }
+    int rssi = 0;
+    if (static_cast<int32_t>(nowMs - nextLogMs_) >= 0 && meter_.average(nowMs, &rssi)) {
+        logMessage(LogLevel::Debug, "BLE", "find signal avg=%d dBm", rssi);
+        nextLogMs_ = nowMs + kLogPeriodMs;
     }
     const SignalLevel level = meter_.level(nowMs);
     if (level != shownLevel_ || meter_.barPercent(nowMs) != shownBar_) {

@@ -17,7 +17,7 @@ static void test_levels_follow_the_signal() {
     far.add(-85, 0);
     TEST_ASSERT_EQUAL(static_cast<int>(SignalLevel::Far), static_cast<int>(far.level(0)));
     SignalMeter near;
-    near.add(-65, 0);
+    near.add(-73, 0);
     TEST_ASSERT_EQUAL(static_cast<int>(SignalLevel::Near), static_cast<int>(near.level(0)));
     SignalMeter close;
     close.add(-45, 0);
@@ -26,9 +26,9 @@ static void test_levels_follow_the_signal() {
 
 static void test_readings_are_averaged_over_2_s() {
     SignalMeter meter;
-    meter.add(-40, 0);
+    meter.add(-60, 0);
     meter.add(-90, 500);
-    // (-40 - 90) / 2 = -65: Near, not Very close nor Far.
+    // (-60 - 90) / 2 = -75: Near, not Very close nor Far.
     TEST_ASSERT_EQUAL(static_cast<int>(SignalLevel::Near), static_cast<int>(meter.level(500)));
     // The first reading is older than 2 s: only -90 is left.
     TEST_ASSERT_EQUAL(static_cast<int>(SignalLevel::Far), static_cast<int>(meter.level(2001)));
@@ -47,7 +47,7 @@ static void test_bar_grows_closer_and_stays_in_range() {
     weak.add(-120, 0);
     TEST_ASSERT_EQUAL(0, weak.barPercent(0));
     SignalMeter mid;
-    mid.add(-70, 0);
+    mid.add(-60, 0);
     TEST_ASSERT_EQUAL(50, mid.barPercent(0));
     SignalMeter strong;
     strong.add(-20, 0);

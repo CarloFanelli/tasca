@@ -21,13 +21,12 @@ public:
     SignalLevel level(uint32_t nowMs) const;
     // 0 to 100: empty with no recent reading.
     int barPercent(uint32_t nowMs) const;
+    // The average of the recent readings in dBm; false when none is recent.
+    bool average(uint32_t nowMs, int* rssi) const;
 
 private:
     // Readings arrive about every 250 ms: 16 cover the window twice.
     static constexpr size_t kCapacity = 16;
-
-    // False when no reading is recent.
-    bool average(uint32_t nowMs, int* rssi) const;
 
     int8_t rssi_[kCapacity] = {};
     uint32_t atMs_[kCapacity] = {};

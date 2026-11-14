@@ -50,3 +50,7 @@
 - **What**: Startup screen until the iPhone is connected: "Tasca" in large type and a smaller line under it. With a bonded iPhone it reads "Connecting…" while the Cardputer reconnects; with none it stays on "Connect your iPhone" until one pairs.
 - **From**: user request (2026-11-13)
 - **Picked up by**: connection-screen (2026-11-13)
+
+### B-12 · open
+- **What**: On the device, check the Out-of-range alert (triple beep and "iPhone out of range" when walking away, silenced by a key, gone when back, none with the iPhone's Bluetooth switched off) and the retuned Find iPhone scale (Very close up to about 1 m, Near about 2 m, Far from 3 m); record the disconnection reasons seen in the serial log.
+- **From**: find-iphone (dev task 04, 2026-11-14)

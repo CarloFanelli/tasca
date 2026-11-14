@@ -2,12 +2,13 @@
 
 namespace {
 
-// Average signal at or above which a level starts; tuned on the user's iPhone.
-constexpr int kVeryCloseRssi = -55;
-constexpr int kNearRssi = -75;
+// Average signal at or above which a level starts, measured on the user's iPhone: about -33 dBm touching its
+// top, -55 at 30 cm, -66 at 1 m, -75 to -81 at 3 m and at 5 m alike.
+constexpr int kVeryCloseRssi = -70;
+constexpr int kNearRssi = -76;
 // The bar's empty and full ends.
-constexpr int kBarEmptyRssi = -100;
-constexpr int kBarFullRssi = -40;
+constexpr int kBarEmptyRssi = -90;
+constexpr int kBarFullRssi = -30;
 
 }  // namespace
 

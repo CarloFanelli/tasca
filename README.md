@@ -39,12 +39,15 @@ Only one iPhone can be paired. To pair again from scratch, do both: "Forget This
 | Connecting… | An iPhone is paired: the Cardputer waits for it to come back in range with Bluetooth on. |
 | Connect your iPhone | No iPhone is paired: pair one (see iPhone setup). |
 | Forget Tasca on the iPhone | Pairing failed because the iPhone remembers an old pairing: forget "Tasca" there, then pair again. |
+| iPhone out of range | The iPhone was lost by distance, with Find iPhone on (see below). |
 
-Keys and G0 do nothing on this screen, except Fn+Del held 3 s. When the iPhone connects, the screen you were on comes back. If "Connecting…" never ends after you forgot "Tasca" on the iPhone, hold Fn+Del for 3 s and pair again.
+**Out-of-range alert** — with Find iPhone on in Settings, when the iPhone is lost by distance (not when you switch its Bluetooth off or power it off), the Cardputer turns the screen on, shows "iPhone out of range" and plays a triple beep every 5 s, even with sound off. A key or G0 silences it; it stops by itself after 2 minutes, and ends when the iPhone is back.
+
+Keys and G0 do nothing else on this screen, except Fn+Del held 3 s. When the iPhone connects, the screen you were on comes back. If "Connecting…" never ends after you forgot "Tasca" on the iPhone, hold Fn+Del for 3 s and pair again.
 
 G0 (the button on the side) switches between Reading mode and Keyboard mode. The status bar at the top shows the mode, the link state, the unread count and the battery.
 
-**Menu** — Fn+G0 opens the Menu over any screen, in either mode: Music (with the title playing), WhatsApp (with the unread count) and Settings. `;` and `.` select an item, Enter opens it in Reading mode; `` ` `` or Fn+G0 again closes the Menu, back to where you were. During a call or on the Connection screen Fn+G0 does nothing.
+**Menu** — Fn+G0 opens the Menu over any screen, in either mode: Music (with the title playing), Find iPhone, WhatsApp (with the unread count) and Settings. `;` and `.` select an item, Enter opens it in Reading mode; `` ` `` or Fn+G0 again closes the Menu, back to where you were. During a call or on the Connection screen Fn+G0 does nothing.
 
 **Reading mode** — keys stay on the Cardputer.
 
@@ -58,7 +61,7 @@ G0 (the button on the side) switches between Reading mode and Keyboard mode. The
 | Fn+Enter | Start Siri (see below) |
 | Fn+Del, held 3 s | Reset pairing and restart |
 
-**Settings** — `;` and `.` select a row, `,` and `/` change its value: brightness, sound, display timeout (15 s to 5 min, or Never) and wake on new message. "Reset pairing" and "Clear messages" run on Enter, then Enter again to confirm. "Clear messages" empties the Cardputer only: the notifications stay on the iPhone. Settings are kept across restarts.
+**Settings** — `;` and `.` select a row, `,` and `/` change its value: brightness, sound, display timeout (15 s to 5 min, or Never), wake on new message and Find iPhone (on by default: the out-of-range alert and the Find iPhone beeps, played even with sound off). The list scrolls when it does not fit. "Reset pairing" and "Clear messages" run on Enter, then Enter again to confirm. "Clear messages" empties the Cardputer only: the notifications stay on the iPhone. Settings are kept across restarts.
 
 **Music** — the Music screen shows what the iPhone is playing in any app (Spotify, Apple Music, podcasts): player, title, artist, play state, elapsed and total time, volume. Nothing to install on the iPhone: it uses the same Bluetooth link.
 
@@ -70,6 +73,8 @@ G0 (the button on the side) switches between Reading mode and Keyboard mode. The
 | `` ` `` | Back to the Inbox |
 
 Keys the player does not offer right now (e.g. next on some podcasts) are dimmed and do nothing. Some apps, Spotify among them, may send the artist inside the title.
+
+**Find iPhone** — with the iPhone connected (within about 10 m), Menu > Find iPhone shows how near it is from the Bluetooth signal: a bar, Very close (up to about 1 m), Near (about 2 m) or Far (3 m and beyond), and a beep that gets faster as you get closer, even with sound off. Opening it turns Find iPhone on in Settings. The iPhone does not ring; the signal is strongest near its top edge. Beeps stop after 5 minutes without a key; `` ` `` goes back to the Inbox.
 
 **Keyboard mode** — every key goes to the iPhone, typing its keycap legend. Fn+a/e/i/o/u give à è ì ò ù, Ctrl+e gives é. To reply, open the chat on the iPhone, then type on the Cardputer.
 
