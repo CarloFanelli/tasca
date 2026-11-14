@@ -20,6 +20,14 @@ _Avoid_: "menu", "preferences".
 The full-screen view of an iPhone call that is ringing, shown over any screen in either mode: caller's name, Enter answers, ` declines. While it is open no key reaches the iPhone.
 _Avoid_: "call popup", "Banner" (a Banner is the 3-second box for a Message in Keyboard mode).
 
+### Menu
+The Reading mode list opened with Fn+G0 from any screen and mode: Music, WhatsApp (the **Inbox**) and Settings. ` or Fn+G0 closes it back where the user was.
+_Avoid_: "launcher", "home" ("home" is the Inbox's avoided name too).
+
+### Music screen
+The Reading mode screen of what the iPhone is playing in any app, read over AMS: app, title, artist, progress, volume, with keys for play/pause, previous, next and volume.
+_Avoid_: "Spotify screen" (it works with any player), "now playing" as a screen name.
+
 ### Screen stack
 The screens open on the Cardputer, one over another: the Inbox always at the bottom, then a Chat screen, the Settings screen or Keyboard mode opened over it. Only the top screen receives keys; closing it returns to the one below, unchanged.
 _Avoid_: "navigation", "router" (one name for the stack).
@@ -55,9 +63,11 @@ _Avoid_: "ring sound", "suoneria" in artifacts.
 - **A covered Settings screen cancels its waiting prompt**: Keyboard mode opening over it cancels "Press Enter to confirm" at once. Why: same as any other key; the user accepted it in place of the 3 s expiry.
 - **The Connection screen covers everything while the iPhone is away**: at boot and on every disconnection, with no keys but the pairing reset; Messages cannot be read until it reconnects. Why: chosen by the user over keeping the Inbox readable.
 - **Large text is efontCN_16 scaled, thickened by redrawing it one font pixel apart**: "Tasca" is 5× with 2-pixel strokes. Why: a FreeSansBold 18 pt font cost about 9 KB of flash; the user compared sizes and strokes on the device.
+- **The Music screen shows only what AMS sends**: no playlists, library or lyrics. Why: AMS carries only the current track, player and queue position; the Wi-Fi alternatives (Spotify Web API, LRCLIB lyrics over the iPhone's hotspot) were offered and the user kept it as is (2026-11-14).
 
 ## Gotchas
 
 - **Only notifications reach the Cardputer**: no chat history, no Messages the user sent, no muted chats, and Enter cannot reply. Replying means opening the chat on the iPhone and typing in Keyboard mode. A full WhatsApp view would need the optional WiFi bridge of phase 2.
 - **No full-screen sprite**: a 240×135 16-bit buffer takes about 64 KB, more than the Message store budget with no PSRAM; each screen band clears and redraws its own rectangle on a dirty flag.
 - **Thickening a scaled bitmap font by 3 font pixels merges the letters**: the small counters of efontCN_16 (a, s) fill in at any scale; 2 font pixels is the limit.
+- **Previous and next skip 15 s on podcasts**: the player offers both commands, so the keys are not dimmed, and iOS turns them into 15-second skips. Seen on the user's iPhone; not a Cardputer bug.

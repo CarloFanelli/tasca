@@ -44,6 +44,8 @@ Keys and G0 do nothing on this screen, except Fn+Del held 3 s. When the iPhone c
 
 G0 (the button on the side) switches between Reading mode and Keyboard mode. The status bar at the top shows the mode, the link state, the unread count and the battery.
 
+**Menu** — Fn+G0 opens the Menu over any screen, in either mode: Music (with the title playing), WhatsApp (with the unread count) and Settings. `;` and `.` select an item, Enter opens it in Reading mode; `` ` `` or Fn+G0 again closes the Menu, back to where you were. During a call or on the Connection screen Fn+G0 does nothing.
+
 **Reading mode** — keys stay on the Cardputer.
 
 | Key | Action |
@@ -57,6 +59,17 @@ G0 (the button on the side) switches between Reading mode and Keyboard mode. The
 | Fn+Del, held 3 s | Reset pairing and restart |
 
 **Settings** — `;` and `.` select a row, `,` and `/` change its value: brightness, sound, display timeout (15 s to 5 min, or Never) and wake on new message. "Reset pairing" and "Clear messages" run on Enter, then Enter again to confirm. "Clear messages" empties the Cardputer only: the notifications stay on the iPhone. Settings are kept across restarts.
+
+**Music** — the Music screen shows what the iPhone is playing in any app (Spotify, Apple Music, podcasts): player, title, artist, play state, elapsed and total time, volume. Nothing to install on the iPhone: it uses the same Bluetooth link.
+
+| Key | Action |
+| --- | --- |
+| Enter | Play / pause (Play when nothing is playing) |
+| `,` / `/` | Previous / next track |
+| `;` / `.` | Volume up / down; held, it keeps changing |
+| `` ` `` | Back to the Inbox |
+
+Keys the player does not offer right now (e.g. next on some podcasts) are dimmed and do nothing. Some apps, Spotify among them, may send the artist inside the title.
 
 **Keyboard mode** — every key goes to the iPhone, typing its keycap legend. Fn+a/e/i/o/u give à è ì ò ù, Ctrl+e gives é. To reply, open the chat on the iPhone, then type on the Cardputer.
 
