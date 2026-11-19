@@ -54,3 +54,19 @@
 ### B-12 · open
 - **What**: On the device, check the Out-of-range alert (triple beep and "iPhone out of range" when walking away, silenced by a key, gone when back, none with the iPhone's Bluetooth switched off) and the retuned Find iPhone scale (Very close up to about 1 m, Near about 2 m, Far from 3 m); record the disconnection reasons seen in the serial log.
 - **From**: find-iphone (dev task 04, 2026-11-14)
+
+### B-13 · open
+- **What**: Read and send Meshtastic direct messages, which use per-node public-key encryption, on the Mesh screen.
+- **From**: mesh-chat (interview, 2026-11-19)
+
+### B-14 · open
+- **What**: Join a private Meshtastic channel with a shared key, and choose the radio preset (LongFast, MediumFast) in Settings.
+- **From**: mesh-chat (interview, 2026-11-19)
+
+### B-15 · open
+- **What**: Let the Cardputer rebroadcast other nodes' packets as a regular Meshtastic client, with a Settings switch, measuring the battery cost.
+- **From**: mesh-chat (interview, 2026-11-19)
+
+### B-16 · open
+- **What**: Before implementing the Mesh chat, send a test node announcement and message from the bridge firmware and check that a nearby node rebroadcasts it (heard back with one hop less).
+- **From**: mesh-chat (interview, 2026-11-19)

@@ -1,0 +1,10 @@
+# Task Progress - mesh-chat
+
+01-mesh-receive: DONE
+02-menu-without-iphone: DONE
+03-mesh-send: DONE
+04-mesh-settings: DONE
+05-node-list: DONE
+06-iphone-clock: DONE
+07-mesh-history: DONE
+08-device-check: DONE
