@@ -6,8 +6,8 @@
 #include <string>
 
 // The user's settings, each one value out of a fixed list.
-enum class Setting : uint8_t { Brightness, Sound, DisplayTimeout, WakeOnMessage, FindIphone };
-constexpr size_t kSettingCount = 5;
+enum class Setting : uint8_t { Brightness, Sound, DisplayTimeout, WakeOnMessage, FindIphone, MeshSound };
+constexpr size_t kSettingCount = 6;
 
 // The setting's name as listed on the Settings screen.
 const char* settingName(Setting setting);
@@ -33,6 +33,8 @@ public:
     bool wakeOnMessage() const;
     // The Out-of-range alert and the Find iPhone screen's Beeps, played even with sound off.
     bool findIphone() const;
+    // A beep for each Mesh message, whatever sound says.
+    bool meshSound() const;
 
 private:
     uint8_t index_[kSettingCount];

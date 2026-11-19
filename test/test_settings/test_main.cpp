@@ -178,6 +178,30 @@ static void test_find_iphone_is_on_by_default_and_toggles() {
     TEST_ASSERT_EQUAL_STRING("Off", settings.label(Setting::FindIphone).c_str());
 }
 
+static void test_mesh_sound_is_on_by_default_and_toggles() {
+    Settings settings;
+    TEST_ASSERT_EQUAL_STRING("Mesh sound", settingName(Setting::MeshSound));
+    TEST_ASSERT_TRUE(settings.meshSound());
+    TEST_ASSERT_TRUE(settings.step(Setting::MeshSound, -1));
+    TEST_ASSERT_FALSE(settings.meshSound());
+    TEST_ASSERT_EQUAL_STRING("Off", settings.label(Setting::MeshSound).c_str());
+}
+
+// Two settings, one text row, one action.
+static void test_a_text_row_sits_between_settings_and_actions_without_prompt() {
+    SettingsNav nav(2, 1, kConfirmMs, 1);
+    nav.down();
+    nav.down();
+    TEST_ASSERT_TRUE(nav.onText());
+    TEST_ASSERT_FALSE(nav.onAction());
+    TEST_ASSERT_FALSE(nav.enter(100));
+    TEST_ASSERT_FALSE(nav.confirming());
+    nav.down();
+    TEST_ASSERT_FALSE(nav.onText());
+    TEST_ASSERT_TRUE(nav.onAction());
+    TEST_ASSERT_FALSE(nav.down());
+}
+
 static void test_short_list_starts_at_the_first_row() {
     SettingsNav nav(2, 1, 3000);
     nav.down();
@@ -223,6 +247,8 @@ int main() {
     RUN_TEST(test_prompt_expiry_survives_clock_wrap);
     RUN_TEST(test_reset_selects_the_first_row_without_prompt);
     RUN_TEST(test_find_iphone_is_on_by_default_and_toggles);
+    RUN_TEST(test_mesh_sound_is_on_by_default_and_toggles);
+    RUN_TEST(test_a_text_row_sits_between_settings_and_actions_without_prompt);
     RUN_TEST(test_short_list_starts_at_the_first_row);
     RUN_TEST(test_list_scrolls_to_keep_the_selection_visible);
     return UNITY_END();

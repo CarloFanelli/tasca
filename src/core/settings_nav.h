@@ -3,23 +3,26 @@
 #include <stddef.h>
 #include <stdint.h>
 
-// The selected row of the Settings screen, the settings first, then the actions. An action runs
-// only when Enter is pressed again on its confirmation prompt.
+// The selected row of the Settings screen: the settings first, then the text rows, edited by the screen, then the
+// actions. An action runs only when Enter is pressed again on its confirmation prompt.
 class SettingsNav {
 public:
     // confirmMs: how long the prompt waits for the second Enter.
-    SettingsNav(size_t settingRows, size_t actionRows, uint32_t confirmMs)
-        : settingRows_(settingRows), rows_(settingRows + actionRows), confirmMs_(confirmMs) {}
+    SettingsNav(size_t settingRows, size_t actionRows, uint32_t confirmMs, size_t textRows = 0)
+        : settingRows_(settingRows), textRows_(textRows), rows_(settingRows + textRows + actionRows),
+          confirmMs_(confirmMs) {}
 
     // Moves the selection by one; false at the first or last row.
     bool up();
     bool down();
     size_t selected() const { return selected_; }
+    // The selected row is a text row.
+    bool onText() const { return selected_ >= settingRows_ && selected_ < settingRows_ + textRows_; }
     // The selected row is an action.
-    bool onAction() const { return selected_ >= settingRows_; }
+    bool onAction() const { return selected_ >= settingRows_ + textRows_; }
 
     // Enter at nowMs, a millisecond clock that may wrap around: on an action, shows the prompt, or
-    // returns true when it is already shown, meaning run the action. Does nothing on a setting.
+    // returns true when it is already shown, meaning run the action. Does nothing on a setting or text row.
     bool enter(uint32_t nowMs);
     bool confirming() const { return confirming_; }
     // Removes the prompt; false when none was shown.
@@ -33,6 +36,7 @@ public:
 
 private:
     size_t settingRows_;
+    size_t textRows_;
     size_t rows_;
     uint32_t confirmMs_;
     size_t selected_ = 0;
