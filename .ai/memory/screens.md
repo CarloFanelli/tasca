@@ -21,7 +21,7 @@ The full-screen view of an iPhone call that is ringing, shown over any screen in
 _Avoid_: "call popup", "Banner" (a Banner is the 3-second box for a Message in Keyboard mode).
 
 ### Menu
-The Reading mode list opened with Fn+G0 from any screen and mode: Music, WhatsApp (the **Inbox**) and Settings. ` or Fn+G0 closes it back where the user was.
+The Reading mode list opened with Fn+G0 from any screen and mode: Music, Find iPhone, Mesh, WhatsApp (the **Inbox**) and Settings. ` or Fn+G0 closes it back where the user was. From the **Connection screen** only Mesh and Settings open.
 _Avoid_: "launcher", "home" ("home" is the Inbox's avoided name too).
 
 ### Music screen
@@ -39,6 +39,18 @@ _Avoid_: "startup screen", "splash" (it also returns after a disconnection).
 ### Find iPhone screen
 The Reading mode screen opened from the **Menu** that guides to the iPhone by the link's signal strength: a bar, one word (Far, Near, Very close) and a Beep faster closer to it.
 _Avoid_: "radar", "finder" (one name for the screen).
+
+### Mesh screen
+The Reading mode screen, opened from the **Menu** even without the iPhone, that lists the Meshtastic public channel's text messages and sends one from a compose line opened with Enter.
+_Avoid_: "LoRa chat", "radio screen" (one name for the screen; LoRa is the radio, Mesh the network).
+
+### Node list
+The list of Meshtastic nodes heard, opened with Tab from the **Mesh screen**: names, signal strength, time since last heard.
+_Avoid_: "contacts" (nodes are radios, not people saved by the user).
+
+### Mesh name
+The name the Cardputer announces to other Meshtastic nodes, set in the **Settings screen**; its first 4 characters that fit in 4 bytes are the short name (an accented letter takes 2).
+_Avoid_: "nickname", "callsign".
 
 ### Out-of-range alert
 The repeated triple **Beep** and the "iPhone out of range" line after the link to the iPhone is lost by signal. A link the iPhone closes (Bluetooth off, iPhone off) starts none.

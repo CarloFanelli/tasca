@@ -29,7 +29,7 @@ PlatformIO CLI is installed with Homebrew (`brew install platformio`). Host test
 
 ## Serial log
 
-Every line is `[L][TAG] message`, with L one of D, I, W, E and TAG a module name of at most 6 characters (`SYS`, `KEY`, `BTN`, `BLE`, `ANCS`, `HID`, `MSG`). Log through `logMessage()` in `src/log.h`, never with `Serial.print` directly. Messages longer than 256 characters are truncated with `...`.
+Every line is `[L][TAG] message`, with L one of D, I, W, E and TAG a module name of at most 6 characters (`SYS`, `KEY`, `BTN`, `BLE`, `ANCS`, `HID`, `MSG`, `MESH`). Log through `logMessage()` in `src/log.h`, never with `Serial.print` directly. Messages longer than 256 characters are truncated with `...`.
 
 The minimum level is set at build time with `-DTASCA_LOG_MIN_LEVEL=` (0 Debug, the default, 1 Info, 2 Warn, 3 Error), e.g. `PLATFORMIO_BUILD_FLAGS="-DTASCA_LOG_MIN_LEVEL=1" pio run -e cardputer`.
 

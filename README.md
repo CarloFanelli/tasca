@@ -16,6 +16,7 @@ Tasca is firmware for the [M5Stack Cardputer v1.1](https://docs.m5stack.com/en/c
 - **Find iPhone**: a beep when you leave the iPhone behind, and a screen that tells you when you are getting closer to it.
 - **Music controls**: what the iPhone is playing, play/pause, next, previous and volume.
 - **A keyboard for the iPhone**: type on the iPhone with the Cardputer's keys, start Siri with one key.
+- **Meshtastic chat**: with the LoRa unit, read and write on the Meshtastic public channel, even without the iPhone.
 
 | Chat | Music | Find iPhone |
 | --- | --- | --- |
@@ -25,6 +26,7 @@ Tasca is firmware for the [M5Stack Cardputer v1.1](https://docs.m5stack.com/en/c
 
 - An **M5Stack Cardputer v1.1**. Tasca is made and tested on it; other Cardputer models are untested.
 - An **iPhone** with WhatsApp.
+- Optional, for the Mesh chat: the **M5Stack LoRaWAN unit (EU868)** on the Grove port, and a **microSD card** to keep its history.
 - A **USB-C data cable** and a computer with **Chrome** or **Edge** (Windows, macOS or Linux), only to install the firmware.
 
 ## Install
@@ -78,15 +80,15 @@ G0 (the button on the side) switches between **Reading mode**, where keys stay o
 | `;` / `.` | Move up / down in the Inbox, scroll a Chat |
 | Enter | Open the selected Chat |
 | `` ` `` | Back to the Inbox, or out of Settings |
-| Fn+G0 | Open the Menu: Music, Find iPhone, WhatsApp, Settings |
+| Fn+G0 | Open the Menu: Music, Find iPhone, Mesh, WhatsApp, Settings |
 | Opt+s | Open Settings |
 | Del, twice | Clear the selected or open Chat on the iPhone too. Messages the iPhone keeps show "Not cleared on the iPhone" |
 | Fn+Enter | Start Siri (see below) |
 | Fn+Del, held 3 s | Reset pairing and restart |
 
-**Menu**: Fn+G0 opens it over any screen, in either mode. `;` and `.` select an item, Enter opens it; `` ` `` or Fn+G0 again closes it. During a call or on the Connection screen Fn+G0 does nothing.
+**Menu**: Fn+G0 opens it over any screen, in either mode. `;` and `.` select an item, Enter opens it; `` ` `` or Fn+G0 again closes it. During a call Fn+G0 does nothing; without the iPhone it opens the Menu over the Connection screen, where only Mesh and Settings open.
 
-**Settings**: `;` and `.` select a row, `,` and `/` change its value: brightness, sound, display timeout (15 s to 5 min, or Never), wake on new message and Find iPhone. "Reset pairing" and "Clear messages" run on Enter, then Enter again to confirm. "Clear messages" empties the Cardputer only: the notifications stay on the iPhone. Settings are kept across restarts.
+**Settings**: `;` and `.` select a row, `,` and `/` change its value: brightness, sound, display timeout (15 s to 5 min, or Never), wake on new message, Find iPhone and Mesh sound. Enter on "Mesh name" edits it in place: Enter saves, `` ` `` cancels. "Reset pairing" and "Clear messages" run on Enter, then Enter again to confirm. "Clear messages" empties the Cardputer only: the notifications stay on the iPhone. Settings are kept across restarts.
 
 The screen turns off after the display timeout; a key or G0 turns it back on. In Reading mode that key does nothing else; in Keyboard mode it is also sent to the iPhone. Each message arriving live beeps when sound is on, and turns the screen on when wake on new message is on.
 
@@ -113,6 +115,30 @@ Keys the player does not offer right now (e.g. next on some podcasts) are dimmed
 
 **Out-of-range alert**: with Find iPhone on in Settings (the default), when the iPhone is lost by distance (not when you switch its Bluetooth off or power it off), the Cardputer turns the screen on, shows "iPhone out of range" and plays a triple beep every 5 s, even with sound off. A key or G0 silences it; it stops by itself after 2 minutes, and ends when the iPhone is back.
 
+### Mesh
+
+With the M5Stack LoRaWAN unit (EU868, RAK3172) on the Grove port, the Cardputer joins the [Meshtastic](https://meshtastic.org) public channel used in Italy (EU_868, MediumFast, 869.525 MHz): it reads the channel's text messages and sends its own, with or without the iPhone. The unit is found within a few seconds of startup or of plugging it in.
+
+Menu > Mesh opens the **Mesh screen**: the messages, newest at the bottom, each with its time, the sender's short name and the text. The Menu shows the unread count beside "Mesh".
+
+| Key | Action |
+| --- | --- |
+| `;` / `.` | Scroll |
+| Enter | Write a message (only with the LoRa unit plugged in) |
+| Tab | Node list: the nodes heard, newest first, with signal strength and time since last heard |
+| Del, twice | Clear every Mesh message, on screen and on the microSD card |
+| `` ` `` | Back |
+
+**Writing**: Enter opens a line at the bottom; keys type as in Keyboard mode (Fn+a/e/i/o/u give à è ì ò ù, Ctrl+e gives é), and the number on the right is the bytes left out of 200 (an accented letter takes 2). Enter sends, `` ` `` closes without sending. Your message then reads "sent", "heard" once a nearby node repeats it, or "not heard" after 30 s. The radio may be on air at most 10% of an hour: past that, Enter shows "Radio limit: wait".
+
+**Mesh name**: Settings > "Mesh name" is how the other nodes see you; its first 4 characters are the short name shown beside your messages. Without one it is "Tasca" and 4 digits of the Cardputer's node ID. The Cardputer announces it when the LoRa unit is found, when you change it and every 3 hours. Settings > "Mesh sound" beeps for each Mesh message, even with sound off.
+
+**Time**: while the iPhone is connected the Cardputer takes its time of day and keeps it until restart: messages show the time they arrived. Before that they show how long ago ("5m"), and after a restart "--:--" when their time was not known.
+
+**History**: the last 500 messages and the nodes heard are kept on the microSD card, in `Tasca/Mesh/`, and come back after a restart. Without a card, or when it is full, "not saved" appears beside the title and the history lasts until restart. **The history on the card is plain text: anyone holding the card can read it.**
+
+The public channel is public: anyone nearby with Meshtastic reads what you send. Direct messages, private channels and relaying other nodes' messages are not supported.
+
 ### Siri
 
 Fn+Enter starts Siri on the iPhone, from either mode, locked or unlocked. Hold it while you start speaking, as a headset button. You speak through the iPhone's or the earphones' microphone: the Cardputer has no Bluetooth audio.
@@ -134,7 +160,7 @@ While the iPhone is not connected, at startup and whenever it disconnects, the C
 | Forget Tasca on the iPhone | Pairing failed because the iPhone remembers an old pairing: forget "Tasca" there, then pair again. |
 | iPhone out of range | The iPhone was lost by distance, with Find iPhone on. |
 
-Keys and G0 do nothing else on this screen, except Fn+Del held 3 s. When the iPhone connects, the screen you were on comes back.
+Keys and G0 do nothing else on this screen, except Fn+Del held 3 s and Fn+G0, which opens the Menu. When the iPhone connects, the screen you were on comes back. The Mesh screen is not covered when the iPhone is lost: the Connection screen appears once you leave it.
 
 ## Troubleshooting
 
