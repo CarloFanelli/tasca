@@ -160,6 +160,16 @@ std::vector<std::string> wrapText(const std::string& text, int maxWidth, const T
     return lines;
 }
 
+std::string lastFitting(const std::string& text, int maxWidth, const TextWidth& width) {
+    size_t start = 0;
+    while (start < text.size() && width(text.substr(start)) > maxWidth) {
+        do {
+            start++;
+        } while (start < text.size() && isUtf8Continuation(text[start]));
+    }
+    return text.substr(start);
+}
+
 std::string fitWidth(const std::string& text, int maxWidth, const TextWidth& width) {
     if (width(text) <= maxWidth) {
         return text;

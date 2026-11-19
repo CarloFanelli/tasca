@@ -6,6 +6,7 @@
 #include <vector>
 
 #include "core/inbox.h"
+#include "core/line_scroll.h"
 
 // Where the user is in Reading mode: the Inbox with its selected Chat and scroll, or the Chat screen
 // of one Chat with its scroll.
@@ -32,15 +33,13 @@ public:
     // The Chat whose screen is open.
     const std::string& openedChat() const { return openedChat_; }
 
-    // Takes the Chat screen's size: total lines, how many fit, and the line where the newest Message
-    // starts. A screen just opened, or showing its last line, shows the newest Message from its start,
-    // with earlier lines above it when it is short; otherwise the scroll stays, clamped to the new size.
+    // Takes the Chat screen's size, as LineScroll::setLines.
     void setChatLines(size_t total, size_t visible, size_t newestStart);
     // Scrolls the Chat screen by one line; false at the top or bottom.
     bool scrollUp();
     bool scrollDown();
     // First line of the Chat screen to draw.
-    size_t chatTop() const { return chatTop_; }
+    size_t chatTop() const { return chatScroll_.top(); }
 
 private:
     void select(size_t index);
@@ -51,7 +50,5 @@ private:
     size_t top_ = 0;
     bool inChat_ = false;
     std::string openedChat_;
-    size_t chatTop_ = 0;
-    size_t chatTotal_ = 0;
-    size_t chatVisible_ = 0;
+    LineScroll chatScroll_;
 };

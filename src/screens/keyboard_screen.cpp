@@ -10,7 +10,6 @@
 #include "core/display_text.h"
 #include "core/echo_line.h"
 #include "core/keymap.h"
-#include "core/utf8.h"
 #include "log.h"
 #include "screens/chat_screen.h"
 #include "siri.h"
@@ -52,14 +51,8 @@ void drawEcho() {
     display.setTextDatum(middle_left);
     display.setTextColor(TFT_WHITE, TFT_BLACK);
     display.setFont(&fonts::efontCN_16);
-    const std::string& text = echo.text();
-    size_t start = 0;
-    while (start < text.size() && display.textWidth(text.c_str() + start) > display.width() - 2 * kMargin) {
-        do {
-            start++;
-        } while (start < text.size() && isUtf8Continuation(text[start]));
-    }
-    display.drawString(text.c_str() + start, kMargin, (kKeyAreaTop + display.height()) / 2);
+    display.drawString(lastFitting(echo.text(), display.width() - 2 * kMargin, displayWidth()).c_str(), kMargin,
+                       (kKeyAreaTop + display.height()) / 2);
 }
 
 void drawMode() {

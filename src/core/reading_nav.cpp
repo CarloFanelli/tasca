@@ -55,9 +55,7 @@ bool ReadingNav::openChat() {
     }
     inChat_ = true;
     openedChat_ = selectedChat_;
-    chatTop_ = 0;
-    chatTotal_ = 0;
-    chatVisible_ = 0;
+    chatScroll_.reset();
     return true;
 }
 
@@ -66,28 +64,15 @@ void ReadingNav::closeChat() {
 }
 
 void ReadingNav::setChatLines(size_t total, size_t visible, size_t newestStart) {
-    // Just opened (no lines yet) or at the end: new Messages come into view from their start.
-    const bool atEnd = chatTop_ + chatVisible_ >= chatTotal_;
-    chatTotal_ = total;
-    chatVisible_ = visible;
-    const size_t last = total > visible ? total - visible : 0;
-    chatTop_ = std::min(atEnd ? newestStart : chatTop_, last);
+    chatScroll_.setLines(total, visible, newestStart);
 }
 
 bool ReadingNav::scrollUp() {
-    if (chatTop_ == 0) {
-        return false;
-    }
-    chatTop_--;
-    return true;
+    return chatScroll_.up();
 }
 
 bool ReadingNav::scrollDown() {
-    if (chatTop_ + chatVisible_ >= chatTotal_) {
-        return false;
-    }
-    chatTop_++;
-    return true;
+    return chatScroll_.down();
 }
 
 void ReadingNav::select(size_t index) {

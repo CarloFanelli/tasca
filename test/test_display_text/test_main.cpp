@@ -118,6 +118,11 @@ static void test_empty_text_is_one_empty_line() {
     assertLines({""}, wrapText("", 100, charWidth));
 }
 
+static void test_the_end_of_a_long_line_is_kept_whole_characters() {
+    TEST_ASSERT_EQUAL_STRING("ciao", lastFitting("ciao", 40, charWidth).c_str());
+    TEST_ASSERT_EQUAL_STRING("\xC3\xA8 ok", lastFitting("perch\xC3\xA8 ok", 40, charWidth).c_str());
+}
+
 int main() {
     UNITY_BEGIN();
     RUN_TEST(test_latin1_accents_are_kept);
@@ -129,6 +134,7 @@ int main() {
     RUN_TEST(test_invisible_marks_and_invalid_bytes_are_dropped);
     RUN_TEST(test_line_breaks_flatten_only_on_request);
     RUN_TEST(test_text_that_fits_is_unchanged);
+    RUN_TEST(test_the_end_of_a_long_line_is_kept_whole_characters);
     RUN_TEST(test_long_text_is_cut_with_ellipsis);
     RUN_TEST(test_cut_never_splits_a_character);
     RUN_TEST(test_too_narrow_gives_ellipsis_or_nothing);

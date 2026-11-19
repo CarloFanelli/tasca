@@ -18,16 +18,16 @@ public:
     // Applies the next report sent; true when the text changed.
     bool apply(const KeyboardReport& report);
 
-    // Empties the line and forgets keys and dead keys.
-    void clear();
+    // Empties the line, or sets it to text, and forgets keys and dead keys.
+    void clear(const std::string& text = "");
 
     // UTF-8 text typed since the last Enter.
     const std::string& text() const { return text_; }
+    void removeLastCharacter();
 
 private:
     void type(uint8_t usage, bool shift);
     void append(const char* utf8);
-    void removeLastCharacter();
 
     KeyboardReport previous_{};
     uint8_t deadKey_ = 0;

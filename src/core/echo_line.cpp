@@ -137,8 +137,8 @@ void EchoLine::removeLastCharacter() {
     }
 }
 
-void EchoLine::clear() {
+void EchoLine::clear(const std::string& text) {
     previous_ = {};
     deadKey_ = 0;
-    text_.clear();
+    text_ = text;
 }

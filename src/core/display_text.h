@@ -20,5 +20,8 @@ std::string displayable(const std::string& utf8, bool flatten);
 // longer than a line. Spaces where a line is broken are dropped.
 std::vector<std::string> wrapText(const std::string& text, int maxWidth, const TextWidth& width);
 
+// The longest end of text, in whole characters, no wider than maxWidth: the part of a typed line next to the cursor.
+std::string lastFitting(const std::string& text, int maxWidth, const TextWidth& width);
+
 // text when it fits maxWidth, else its longest prefix that fits with kEllipsis appended.
 std::string fitWidth(const std::string& text, int maxWidth, const TextWidth& width);
