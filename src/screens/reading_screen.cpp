@@ -18,8 +18,13 @@ void ReadingScreen::handleKeys(const std::vector<KeyPos>& pressed, const std::ve
         formatKeyEvent(text, sizeof(text), event);
         logMessage(LogLevel::Debug, "KEY", "%s", text);
         releaseSiri(event);
+        if (event.kind != KeyEventKind::Down) {
+            continue;
+        }
+        // The Mesh screen and Node list stay on top when the iPhone is lost: a key there silences the alert too.
+        app::silenceOutOfRangeAlert();
         // A key that turns the screen on does nothing else.
-        if (event.kind != KeyEventKind::Down || app::wakeScreen()) {
+        if (app::wakeScreen()) {
             continue;
         }
         // Any key but a plain Del removes the clear prompt, then does what it does.

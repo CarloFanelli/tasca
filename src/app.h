@@ -27,6 +27,9 @@ constexpr KeyPos kPrevKey{3, 10};     // ,
 constexpr KeyPos kNextKey{3, 12};     // /
 constexpr KeyPos kDelKey{0, 13};
 constexpr KeyPos kFnKey{2, 0};
+constexpr KeyPos kTabKey{1, 0};
+// How long a clear prompt waits for the second Del.
+constexpr uint32_t kClearConfirmMs = 3000;
 
 extern bool displayReady;
 // The iPhone accepts keys: Keyboard mode sends them, Siri needs them.
@@ -57,6 +60,8 @@ extern ScreenStack screens;
 
 bool isKey(KeyPos a, KeyPos b);
 bool canDraw();
+// A key or G0 silences the Out-of-range alert.
+void silenceOutOfRangeAlert();
 // A key, G0 or live Message: the display timeout restarts. True when this turned the screen on.
 bool wakeScreen();
 void applyBrightness();

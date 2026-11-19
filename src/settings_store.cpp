@@ -12,7 +12,10 @@ Preferences preferences;
 bool opened = false;
 
 // Storage keys, in the order of Setting; at most 15 characters.
-constexpr const char* kKeys[kSettingCount] = {"brightness", "sound", "timeout", "wake", "findiphone"};
+constexpr const char* kKeys[kSettingCount] = {"brightness", "sound", "timeout", "wake", "findiphone",
+                                                     "meshsound"};
+
+constexpr char kMeshNameKey[] = "meshname";
 
 const char* keyOf(Setting setting) {
     return kKeys[static_cast<size_t>(setting)];
@@ -35,6 +38,20 @@ void load(Settings& settings) {
         if (!settings.setValueIndex(setting, preferences.getUChar(keyOf(setting), 0xFF))) {
             logMessage(LogLevel::Warn, "SYS", "stored setting %s unreadable: default used", keyOf(setting));
         }
+    }
+}
+
+std::string loadMeshName() {
+    if (!opened || !preferences.isKey(kMeshNameKey)) {
+        return "";
+    }
+    return preferences.getString(kMeshNameKey, "").c_str();
+}
+
+void saveMeshName(const std::string& name) {
+    // An empty name is stored as written: putString reports 0 bytes for it.
+    if (!opened || (preferences.putString(kMeshNameKey, name.c_str()) == 0 && !name.empty())) {
+        logMessage(LogLevel::Warn, "SYS", "Mesh name not saved: kept until restart");
     }
 }
 

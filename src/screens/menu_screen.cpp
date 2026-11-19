@@ -5,12 +5,16 @@
 #include "app.h"
 #include "ble/ams_client.h"
 #include "ble/ancs_client.h"
+#include "ble/ble_manager.h"
 #include "core/inbox.h"
 #include "core/settings_nav.h"
+#include "mesh/lora_unit.h"
 #include "screens/chat_screen.h"
 #include "screens/find_screen.h"
+#include "screens/mesh_screen.h"
 #include "screens/keyboard_screen.h"
 #include "screens/music_screen.h"
+#include "screens/node_list_screen.h"
 #include "screens/settings_screen.h"
 #include "ui/draw.h"
 
@@ -20,8 +24,8 @@ MenuScreen menuScreen;
 
 namespace {
 
-enum Item : size_t { kMusic, kFindIphone, kWhatsApp, kSettings, kItemCount };
-constexpr const char* kItemNames[kItemCount] = {"Music", "Find iPhone", "WhatsApp", "Settings"};
+enum Item : size_t { kMusic, kFindIphone, kMesh, kWhatsApp, kSettings, kItemCount };
+constexpr const char* kItemNames[kItemCount] = {"Music", "Find iPhone", "Mesh", "WhatsApp", "Settings"};
 // Rows only, no actions: no prompt to confirm.
 SettingsNav menuNav(kItemCount, 0, 0);
 
@@ -34,6 +38,8 @@ void closeToInbox() {
     app::screens.remove(&settingsScreen);
     app::screens.remove(&musicScreen);
     app::screens.remove(&findScreen);
+    app::screens.remove(&nodeListScreen);
+    app::screens.remove(&meshScreen);
     if (app::screens.isOpen(&chatScreen)) {
         chatScreen.close();
     }
@@ -42,6 +48,9 @@ void closeToInbox() {
 std::string itemValue(size_t item) {
     if (item == kWhatsApp) {
         return unreadLabel(ancs::messages().unread()) + " unread";
+    }
+    if (item == kMesh) {
+        return unreadLabel(lora::messages().unread()) + " unread";
     }
     if (item == kMusic) {
         const std::string& title = ams::nowPlaying().title();
@@ -54,6 +63,8 @@ std::string itemValue(size_t item) {
 
 void MenuScreen::open() {
     menuNav.reset();
+    // A Menu left under the Connection screen comes back on top.
+    app::screens.remove(this);
     app::screens.open(this);
     app::screenDirty = true;
 }
@@ -89,7 +100,7 @@ void MenuScreen::draw() {
         display.drawString(kItemNames[i], kMargin, top);
         const int valueWidth = display.width() - 3 * kMargin - display.textWidth(kItemNames[i]);
         display.setTextDatum(top_right);
-        display.setTextColor(i == kWhatsApp ? TFT_GREEN : TFT_LIGHTGREY, background);
+        display.setTextColor(i == kWhatsApp || i == kMesh ? TFT_GREEN : TFT_LIGHTGREY, background);
         display.drawString(fitWidth(itemValue(i), valueWidth, displayWidth()).c_str(), display.width() - kMargin, top);
     }
 }
@@ -103,11 +114,17 @@ void MenuScreen::onKeyDown(const KeyEvent& event) {
         close(pressed_);
     } else if (app::isKey(event.key, app::kOpenKey)) {
         const size_t item = menuNav.selected();
+        // Without the iPhone only the Mesh screen and Settings open.
+        if (ble::phase() != ble::Phase::Secured && item != kMesh && item != kSettings) {
+            return;
+        }
         closeToInbox();
         if (item == kMusic) {
             musicScreen.open();
         } else if (item == kFindIphone) {
             findScreen.open();
+        } else if (item == kMesh) {
+            meshScreen.open();
         } else if (item == kSettings) {
             settingsScreen.open(true);
         }

@@ -6,11 +6,16 @@
 #include "ble/ams_client.h"
 #include "ble/ancs_client.h"
 #include "ble/ble_manager.h"
+#include "ble/cts_client.h"
 #include "core/key_events.h"
 #include "log.h"
+#include "mesh/lora_unit.h"
+#include "mesh/mesh_storage.h"
 #include "screens/call_screen.h"
 #include "screens/connection_screen.h"
 #include "screens/keyboard_screen.h"
+#include "screens/mesh_screen.h"
+#include "screens/node_list_screen.h"
 #include "screens/menu_screen.h"
 #include "screens/music_screen.h"
 #include "settings_store.h"
@@ -27,6 +32,8 @@ KeyTracker keyTracker;
 uint32_t lastBatteryPollMs = 0;
 // Messages added live so far: one more means a new arrival.
 size_t seenLiveAdded = 0;
+// Mesh messages received so far, likewise.
+size_t seenMeshReceived = 0;
 
 void pollScreenTimeout() {
     if (!screenTimer.expire(millis())) {
@@ -39,20 +46,26 @@ void pollScreenTimeout() {
     ble::requestTimings(true);
 }
 
+// count messages arrived: a beep each when sound is on, and the screen on with wake on new message. During a call
+// only the ring is heard.
+void announceArrivals(size_t count, bool sound) {
+    if (sound && !screens.isOpen(&callScreen)) {
+        queueBeeps(count);
+    }
+    if (settings.wakeOnMessage()) {
+        wakeScreen();
+    }
+}
+
 // Each live Message beeps and can turn the screen on. One that arrived while typing shows as the Banner;
-// in Reading mode the screens show it. During a call only the ring is heard.
+// in Reading mode the screens show it.
 void pollArrivals() {
     const MessageStore& store = ancs::messages();
     if (store.liveAdded() == seenLiveAdded) {
         return;
     }
-    if (settings.sound() && !screens.isOpen(&callScreen)) {
-        queueBeeps(store.liveAdded() - seenLiveAdded);
-    }
+    announceArrivals(store.liveAdded() - seenLiveAdded, settings.sound());
     seenLiveAdded = store.liveAdded();
-    if (settings.wakeOnMessage()) {
-        wakeScreen();
-    }
     const Message* newest = store.newestLive();
     if (inKeyboardMode() && newest != nullptr) {
         keyboardScreen.showBanner(*newest);
@@ -61,6 +74,16 @@ void pollArrivals() {
 
 // Find iPhone: a link lost by signal starts the Out-of-range alert, which beeps even with sound off; the
 // iPhone's return or Find iPhone turned off ends it.
+// Each Mesh message received beeps with Mesh sound on, whatever sound says.
+void pollMeshArrivals() {
+    const size_t received = lora::messages().received();
+    if (received == seenMeshReceived) {
+        return;
+    }
+    announceArrivals(received - seenMeshReceived, settings.meshSound());
+    seenMeshReceived = received;
+}
+
 void pollOutOfRange() {
     const bool lost = ble::takeLinkLost();
     if (lost && settings.findIphone()) {
@@ -103,15 +126,13 @@ void pollBattery() {
 void pollG0(const std::vector<KeyPos>& pressed) {
     if (M5Cardputer.BtnA.wasPressed()) {
         logMessage(LogLevel::Debug, "BTN", "G0 down");
-        if (outOfRangeAlert.silence()) {
-            logMessage(LogLevel::Info, "SYS", "out-of-range alert silenced");
-        }
-        // A press that turns the screen on leaves the mode as it is; during a call or without the iPhone
-        // G0 does nothing, Fn+G0 included.
-        if (!wakeScreen() && !screens.isOpen(&callScreen) && !screens.isOpen(&connectionScreen)) {
+        silenceOutOfRangeAlert();
+        const bool fn = containsKey(pressed, kFnKey);
+        // A press that turns the screen on leaves the mode as it is; during a call G0 does nothing, Fn+G0
+        // included. Without the iPhone there is no Keyboard mode: only Fn+G0 works.
+        if (!wakeScreen() && !screens.isOpen(&callScreen) && (fn || ble::phase() == ble::Phase::Secured)) {
             const bool menuShown = screens.top() == &menuScreen;
             // Fn+G0 opens or closes the Menu; G0 alone closes it, then switches the mode.
-            const bool fn = containsKey(pressed, kFnKey);
             if (menuShown) {
                 menuScreen.close(pressed);
             }
@@ -172,6 +193,10 @@ void setup() {
 
     pollBattery();
     ble::begin(static_cast<uint8_t>(batteryLevel < 0 ? 0 : batteryLevel));
+    lora::begin();
+    lora::messages().setClock(&cts::clock());
+    mesh_storage::begin(lora::messages());
+    lora::setMeshName(settings_store::loadMeshName());
 }
 
 void loop() {
@@ -188,6 +213,18 @@ void loop() {
     if (ams::poll() && (screens.top() == &menuScreen || screens.top() == &musicScreen)) {
         screenDirty = true;
     }
+    // The Mesh screen shows the messages as they arrive, the Node list the nodes heard, the Menu the unread count.
+    if (lora::poll()) {
+        if (screens.top() == &meshScreen) {
+            meshScreen.markRead();
+            meshScreen.layout();
+            screenDirty = true;
+        } else if (screens.top() == &menuScreen || screens.top() == &nodeListScreen) {
+            screenDirty = true;
+        }
+        pollMeshArrivals();
+    }
+    mesh_storage::save(lora::messages(), millis());
     screens.top()->update(millis());
     pollBattery();
     const std::vector<KeyPos> pressed = readPressedKeys();

@@ -3,7 +3,8 @@
 #include "core/screen.h"
 
 // A Reading mode screen: keys stay on the Cardputer. Handles what every Reading mode screen shares
-// (pairing reset, waking the screen, Siri), then hands each other key press to onKeyDown.
+// (pairing reset, waking the screen, silencing the Out-of-range alert, Siri), then hands each other key press to
+// onKeyDown.
 class ReadingScreen : public Screen {
 public:
     void handleKeys(const std::vector<KeyPos>& pressed, const std::vector<KeyEvent>& events) override;

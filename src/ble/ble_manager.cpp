@@ -8,6 +8,7 @@
 
 #include "ble/ams_client.h"
 #include "ble/ancs_client.h"
+#include "ble/cts_client.h"
 #include "ble/hid_keyboard.h"
 #include "log.h"
 
@@ -114,6 +115,7 @@ bool setUpServices(uint16_t connHandle) {
     }
     const bool changed = ancs::setUp(gattClient);
     ams::setUp(gattClient);
+    cts::setUp(gattClient);
     NimBLERemoteService* service = gattClient->getService(kGenericAttributeUuid);
     NimBLERemoteCharacteristic* serviceChanged =
         service == nullptr ? nullptr : service->getCharacteristic(kServiceChangedUuid);

@@ -18,8 +18,6 @@ namespace app {
 
 namespace {
 
-// How long the clear prompt waits for the second Del.
-constexpr uint32_t kClearConfirmMs = 3000;
 // How long "pairing reset" stays on screen before the board restarts.
 constexpr uint32_t kResetNoticeMs = 1500;
 // One short beep, with a pause between beeps so that each one is heard.
@@ -52,6 +50,12 @@ bool isKey(KeyPos a, KeyPos b) {
 
 bool canDraw() {
     return displayReady && !screenTimer.off();
+}
+
+void silenceOutOfRangeAlert() {
+    if (outOfRangeAlert.silence()) {
+        logMessage(LogLevel::Info, "SYS", "out-of-range alert silenced");
+    }
 }
 
 bool wakeScreen() {

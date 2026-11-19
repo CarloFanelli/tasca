@@ -7,6 +7,8 @@
 #include "core/connection_line.h"
 #include "log.h"
 #include "screens/keyboard_screen.h"
+#include "screens/mesh_screen.h"
+#include "screens/node_list_screen.h"
 #include "siri.h"
 #include "ui/draw.h"
 #include "ui/status_bar.h"
@@ -29,7 +31,10 @@ constexpr int kLineTop = kNameTop + (16 + kNameStroke - 1) * kNameScale + 8;
 void ConnectionScreen::sync(const std::vector<KeyPos>& pressed) {
     const bool secured = ble::phase() == ble::Phase::Secured;
     const bool open = screens.isOpen(this);
-    if (!secured && !open) {
+    // The Mesh screen and Node list work without the iPhone: they are not covered, and the Connection screen opens
+    // once they are left.
+    const bool meshShown = screens.top() == &meshScreen || screens.top() == &nodeListScreen;
+    if (!secured && !open && !meshShown) {
         // A Voice Command held when the iPhone left would stay down once it is back.
         cancelSiri();
         screens.open(this);
@@ -55,9 +60,7 @@ void ConnectionScreen::handleKeys(const std::vector<KeyPos>& pressed, const std:
     for (const KeyEvent& event : events) {
         if (event.kind == KeyEventKind::Down) {
             wakeScreen();
-            if (outOfRangeAlert.silence()) {
-                logMessage(LogLevel::Info, "SYS", "out-of-range alert silenced");
-            }
+            silenceOutOfRangeAlert();
         }
     }
 }
